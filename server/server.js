@@ -185,7 +185,7 @@ app.post("/api/screenpipe", async (req, res) => {
       "a list of URLs relevant to that intention. You are given a summary of their recent " +
       "screen and audio activity from Screenpipe. Decide how much the player strayed from " +
       "their intention during this window. Respond with strict JSON only: " +
-      '{"damage": <integer 0-100>, "reasoning": "<one short sentence>"}. ' +
+      '{"damage": <integer 0-100>}. ' +
       "0 damage means they stayed on track or there is not enough evidence of straying. " +
       "10 damage means they were completely off-task for the whole window.\n\n" +
       JSON.stringify({
@@ -211,9 +211,6 @@ app.post("/api/screenpipe", async (req, res) => {
     const damage = Number.isFinite(rawDamage)
       ? Math.max(0, Math.min(100, Math.round(rawDamage)))
       : 0;
-    const reasoning =
-      typeof codexData.reasoning === "string" ? codexData.reasoning : "";
-
     const health = await applyDamage(damage);
 
     // Mirror the same hit onto the physical pet.
@@ -226,7 +223,6 @@ app.post("/api/screenpipe", async (req, res) => {
       at: new Date().toISOString(),
       intention: userChoices.intention,
       damage,
-      reasoning,
     };
     const existing = await readJson(QUESTIONS_FILE, []);
     const questionsArray = Array.isArray(existing) ? existing : [];
@@ -237,7 +233,6 @@ app.post("/api/screenpipe", async (req, res) => {
     return res.status(200).json({
       success: true,
       damage,
-      reasoning,
       health: health.health,
       maxHealth: health.maxHealth,
     });
