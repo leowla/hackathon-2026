@@ -208,19 +208,59 @@ p {
   box-shadow: var(--shadow);
 }
 
+/*
+ * Deliberately not `flex: 1`. The link shrink-wraps its text so the leftover
+ * space in the row stays free for the duration prompt, and the cap keeps that
+ * space from vanishing when a URL is long.
+ */
 .url-list__link {
-  flex: 1;
   min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--accent);
+  max-width: 65%;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   text-decoration: none;
 }
 
-.url-list__link:hover {
+.url-list__label {
+  max-width: 100%;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.url-list__link:hover .url-list__label {
   text-decoration: underline;
 }
 
+/* One line, clipped — the full URL is in the link's title tooltip. */
+.url-list__url {
+  max-width: 100%;
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The free space between the link and Delete is what opens the prompt. */
+.url-list__item--clickable {
+  cursor: pointer;
+}
+
+.url-list__item--clickable:hover {
+  border-color: var(--accent);
+}
+
+.url-list__item--clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .url-list__remove {
+  margin-left: auto;
   flex-shrink: 0;
   padding: 6px 12px;
   font: inherit;
@@ -241,4 +281,73 @@ p {
   text-align: center;
   border: 1px dashed var(--border);
   border-radius: 8px;
+}
+
+/* Dialog */
+
+.dialog {
+  width: 320px;
+  max-width: calc(100% - 32px);
+  padding: 20px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.dialog__title {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.dialog__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.dialog__input {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  /* Hide the spinner — the value is typed, not nudged. */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.dialog__input::-webkit-outer-spin-button,
+.dialog__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.dialog__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.dialog__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+/* The shared link-button carries a bottom margin the dialog doesn't want. */
+.dialog__actions .link-button {
+  margin-bottom: 0;
 }

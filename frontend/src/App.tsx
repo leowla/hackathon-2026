@@ -30,6 +30,7 @@ export default function App() {
         <IntentionsPage
           intention={intention}
           onIntentionChange={setIntention}
+          urls={urls}
           onGoToUrls={() => setPage('urls')}
         />
       ) : (

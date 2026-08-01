@@ -46,6 +46,40 @@ export function isValidUrl(input: string): boolean {
   return normalizeUrl(input) !== null
 }
 
+/**
+ * Short display name for a saved URL: the hostname up to the first dot.
+ *
+ * `https://abc.com`        -> `ABC`
+ * `https://www.abc.com/x`  -> `ABC`   (a leading `www` names nothing)
+ * `http://127.0.0.1:8080`  -> `127.0.0.1`
+ */
+export function siteLabel(url: string): string {
+  let hostname: string
+  try {
+    hostname = new URL(url).hostname
+  } catch {
+    return url
+  }
+
+  const bare = hostname.replace(/^www\./i, '')
+  // An IP literal has no name to shorten — `127` would be nonsense.
+  if (IPV4.test(bare) || bare.startsWith('[')) return bare
+
+  return bare.split('.')[0].toUpperCase()
+}
+
+/**
+ * The URL as a reader wants to see it: `https://` dropped, since it's the
+ * default and just costs width. Anything else keeps its scheme, so an
+ * insecure `http://` link stays visible as one.
+ *
+ * `https://abc.com/football` -> `abc.com/football`
+ * `http://localhost:3000`    -> `http://localhost:3000`
+ */
+export function shortUrl(url: string): string {
+  return url.startsWith('https://') ? url.slice('https://'.length) : url
+}
+
 function needsTld(hostname: string): boolean {
   if (hostname.includes('.')) return false
   if (DOTLESS_HOSTS.includes(hostname.toLowerCase())) return false
