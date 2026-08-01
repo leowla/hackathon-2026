@@ -27,3 +27,6 @@ questions.json
 *.njsproj
 *.sln
 *.sw?
+
+.env
+
