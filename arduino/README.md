@@ -19,6 +19,38 @@ It handles:
 
 Upload this file to the Arduino using the Arduino IDE.
 
+## Serial protocol
+
+One newline-terminated signal per line, 9600 baud. Commands are
+case-insensitive.
+
+```
+COMMAND
+COMMAND:AMOUNT
+```
+
+`DAMAGE` and `HEAL` accept an amount, which is the number of health points to
+apply. `DEATH`, `RESET`, `BOTHER` and `DESPERATE` take none.
+
+| Sent | Effect |
+| --- | --- |
+| `DAMAGE:35` | Lose 35 health |
+| `HEAL:15` | Gain 15 health |
+| `DAMAGE` | Lose the built-in 20, as before |
+| `RESET` | Back to 100 with the heart animation |
+| `BOTHER` | Attention sound, no health change |
+
+An omitted, empty or non-numeric amount (`DAMAGE`, `DAMAGE:`, `DAMAGE:abc`)
+falls back to the built-in 20 point step, so every command that worked before
+still works. An amount above 100 is clamped; an amount of `0` is accepted and
+reported as ignored.
+
+Dropping below 50 health still auto-triggers the `DESPERATE` alarm, which
+repeats until the push button is pressed. Because the amount is now
+sender-controlled, a single large hit can cross that threshold. The Arduino
+raises `DESPERATE` on its own, so the software side normally should not send
+it directly.
+
 ### `index.js`
 
 Node.js serial terminal for sending commands to the Arduino.
@@ -50,48 +82,31 @@ node index.js
 
 5. Type a command in the terminal and press Enter.
 
-## Serial Commands
+## Driving it from the server
 
-The Arduino accepts newline-delimited text commands over serial.
+`server/arduino.js` owns the same serial link and is what the app actually
+uses. Configure it in `server/.env`:
 
-```txt
-DAMAGE
-DAMAGE 10
-HEAL
-HEAL 25
-DEATH
-RESET
-BOTHER
+```
+ARDUINO_PORT=COM3
+ARDUINO_BAUD=9600
 ```
 
-`DAMAGE` and `HEAL` use the default 20% change when no amount is provided. When the software side needs more control, send an amount from `1` to `100`, for example `DAMAGE 10`.
+Find the port on Windows with `[System.IO.Ports.SerialPort]::getportnames()`
+in PowerShell, or in the Arduino IDE under **Tools > Port**. Leave
+`ARDUINO_PORT` unset and the server runs normally with the hardware disabled.
 
-`DESPERATE` is handled by the Arduino automatically when health drops below 50%, so the software side normally should not send it directly.
+Only one process can hold the port. While the server is running,
+`node index.js` and the Arduino Serial Monitor will fail to open it, and vice
+versa.
 
-## Next Software Integration Step
+Send a signal by hand while the server is up:
 
-`index.js` is currently a terminal test bridge. It proves that Node.js can open the serial port, send commands to Arduino, and read Arduino responses.
-
-For the real app, move the serial-port logic into the Express server so API routes can control the Arduino:
-
-1. Install `serialport` in the `server` folder.
-2. Create a helper such as `server/arduino.js`.
-3. Open the Arduino port once when the server starts.
-4. Export a function such as `sendArduinoCommand(command)`.
-5. Add an Express route such as `POST /api/arduino/command`.
-6. Have the frontend or app logic call that route with commands like `DAMAGE 15`, `HEAL 10`, `RESET`, or `BOTHER`.
-
-The final flow should be:
-
-```txt
-Frontend or app logic
-  -> Express API
-  -> server/arduino.js
-  -> Arduino serial command
-  -> LCD/buzzer/button response
+```bash
+curl -X POST localhost:3321/api/arduino \
+  -H "Content-Type: application/json" \
+  -d '{"command":"DAMAGE","amount":30}'
 ```
-
-Close Arduino Serial Monitor before starting the Node/Express serial connection. The serial port can only be opened by one program at a time.
 
 ## Hardware Notes
 
