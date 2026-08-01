@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/kim/Desktop/temp/hackathon-2026/server",
+      "program": "/Users/kim/Desktop/temp/hackathon-2026/server/build/Debug/outDebug"
+    }
+  ]
+}
