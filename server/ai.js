@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 
+// Initialize the OpenAI client. It automatically looks for the
+// process.env.OPENAI_API_KEY environment variable.
 const openai = new OpenAI();
 
 export async function dispatch(prompt) {
@@ -18,5 +20,5 @@ export async function dispatch(prompt) {
     ],
   });
 
-  return response;
+  return response.choices[0].message.content;
 }
