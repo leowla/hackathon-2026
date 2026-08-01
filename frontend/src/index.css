@@ -61,26 +61,96 @@ p {
   padding: 48px 20px 64px;
 }
 
-.app__header {
-  margin-bottom: 28px;
+/* Page shell */
+
+.page__header {
+  margin-bottom: 24px;
 }
 
-.app__title {
+.page__title {
   font-size: 32px;
   letter-spacing: -0.6px;
 }
 
-.app__subtitle {
+.page__intro {
   margin-top: 6px;
 }
 
-.app__section {
+.page__section {
   margin-top: 36px;
 }
 
-.app__section-title {
+.page__section-title {
   font-size: 18px;
   margin-bottom: 12px;
+}
+
+.page__cta {
+  margin-top: 20px;
+}
+
+/* Buttons */
+
+.button {
+  padding: 11px 20px;
+  font: inherit;
+  font-weight: 500;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.link-button {
+  margin-bottom: 20px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+/* Intention */
+
+.intention {
+  margin-bottom: 20px;
+}
+
+.intention__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.intention__input {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  font: inherit;
+  color: var(--text-h);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.intention__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
 }
 
 /* Form */
@@ -108,22 +178,6 @@ p {
 
 .url-form__input[aria-invalid='true'] {
   border-color: var(--danger);
-}
-
-.url-form__button {
-  padding: 11px 20px;
-  font: inherit;
-  font-weight: 500;
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.url-form__button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .url-form__error {
