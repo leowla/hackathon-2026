@@ -142,15 +142,15 @@ const prompt =
   '{"damage": <integer 0-100>, "reasoning": "<one short sentence>"}';
 
 const damage = Math.max(0, Math.min(100, Math.round(rawDamage)));
-await applyDamage(damage); // → serial: DAMAGE <n> → the bunny winces
+await applyDamage(damage); // → serial: DAMAGE <n> → health drops, sad chime plays
 ```
 
 ---
 layout: bigtype
 bg: grain
 kicker: Why a toy, not another app
-title: A bunny wincing you <em>can't</em> ignore.
-subtitle: Unlike a notification.
+title: Your bunny <em>takes damage</em>.
+subtitle: Not a notification you can swipe away.
 ---
 
 ---
