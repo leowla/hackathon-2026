@@ -269,7 +269,7 @@ void setup()
 
   Serial.println("Arduino ready");
   Serial.println(
-    "Commands: DAMAGE, HEAL, DEATH, RESET, BOTHER, DESPERATE"
+    "Commands: DAMAGE [amount], HEAL [amount], DEATH, RESET, BOTHER, DESPERATE"
   );
 }
 
@@ -349,27 +349,62 @@ void checkSerialCommand()
     return;
   }
 
-  if (command == "DAMAGE")
+  int separatorIndex = command.indexOf(' ');
+  String commandName = command;
+  String amountText = "";
+
+  if (separatorIndex >= 0)
   {
-    handleDamage();
+    commandName = command.substring(0, separatorIndex);
+    amountText = command.substring(separatorIndex + 1);
+    amountText.trim();
   }
-  else if (command == "HEAL")
+
+  int amount = healthChange;
+
+  if (
+    amountText.length() > 0 &&
+    commandName != "DAMAGE" &&
+    commandName != "HEAL"
+  )
   {
-    handleHeal();
+    Serial.print("ERROR: Command does not accept a health amount: ");
+    Serial.println(commandName);
+    return;
   }
-  else if (command == "DEATH")
+
+  if (
+    amountText.length() > 0 &&
+    !parseHealthAmount(amountText, amount)
+  )
+  {
+    Serial.print("ERROR: Invalid health amount for command: ");
+    Serial.println(command);
+    Serial.println("Use DAMAGE 10 or HEAL 10 with an amount from 1 to 100.");
+    return;
+  }
+
+  if (commandName == "DAMAGE")
+  {
+    handleDamage(amount);
+  }
+  else if (commandName == "HEAL")
+  {
+    handleHeal(amount);
+  }
+  else if (commandName == "DEATH")
   {
     handleDeath();
   }
-  else if (command == "RESET")
+  else if (commandName == "RESET")
   {
     handleReset();
   }
-  else if (command == "BOTHER")
+  else if (commandName == "BOTHER")
   {
     handleBother();
   }
-  else if (command == "DESPERATE")
+  else if (commandName == "DESPERATE")
   {
     handleDesperate();
   }
@@ -379,7 +414,7 @@ void checkSerialCommand()
     Serial.println(command);
 
     Serial.println(
-      "Valid commands: DAMAGE, HEAL, DEATH, RESET, BOTHER, DESPERATE"
+      "Valid commands: DAMAGE [amount], HEAL [amount], DEATH, RESET, BOTHER, DESPERATE"
     );
   }
 }
@@ -388,6 +423,28 @@ void checkSerialCommand()
 // ==================================================
 // Health helpers
 // ==================================================
+
+bool parseHealthAmount(
+  String amountText,
+  int &amount
+)
+{
+  for (int i = 0; i < amountText.length(); i++)
+  {
+    if (!isDigit(amountText.charAt(i)))
+    {
+      return false;
+    }
+  }
+
+  amount = amountText.toInt();
+
+  return (
+    amount > 0 &&
+    amount <= maxHealth
+  );
+}
+
 
 bool decreaseHealthBy10()
 {
@@ -438,7 +495,7 @@ bool increaseHealthBy10()
 // DAMAGE
 // ==================================================
 
-void handleDamage()
+void handleDamage(int amount)
 {
   // Already dead
   if (healthLevel <= 0)
@@ -454,7 +511,7 @@ void handleDamage()
     return;
   }
 
-  healthLevel -= healthChange;
+  healthLevel -= amount;
 
   // This damage caused death
   if (healthLevel <= 0)
@@ -511,7 +568,7 @@ void handleDamage()
 // HEAL
 // ==================================================
 
-void handleHeal()
+void handleHeal(int amount)
 {
   // A dead pet must be reset
   if (healthLevel <= 0)
@@ -538,7 +595,7 @@ void handleHeal()
     return;
   }
 
-  healthLevel += healthChange;
+  healthLevel += amount;
 
   if (healthLevel > maxHealth)
   {
