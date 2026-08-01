@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import { dispatch } from "./ai.js";
+import { ARDUINO_COMMANDS, openArduino, sendToArduino } from "./arduino.js";
 
 const app = express();
 const port = 3321;
@@ -58,6 +59,33 @@ async function applyDamage(damage) {
   return next;
 }
 
+// The pet has its own health counter, so a failed signal must never turn a
+// working request into an error. Log it and carry on.
+async function signalPet(command, amount = null, send = sendToArduino) {
+  try {
+    return await send(command, amount);
+  } catch (err) {
+    console.error(`Failed to signal the Arduino (${command}):`, err.message);
+    return { sent: false, reason: "error" };
+  }
+}
+
+// The board boots at full health every time the port opens, but character.json
+// survives restarts. Push the stored health onto the freshly reset pet so the
+// two counters agree. Runs as the Arduino connect hook, which supplies the
+// sender it must use.
+async function syncPetHealth(send) {
+  const { health, maxHealth } = await getHealth();
+
+  await signalPet("RESET", null, send);
+
+  const missing = maxHealth - health;
+
+  if (missing > 0) {
+    await signalPet("DAMAGE", missing, send);
+  }
+}
+
 async function fetchRecentActivity() {
   const url = `${SCREENPIPE_BASE_URL}/activity-summary?start_time=${encodeURIComponent(`${ACTIVITY_WINDOW} ago`)}&end_time=now`;
   const headers = SCREENPIPE_API_KEY
@@ -90,7 +118,42 @@ app.post("/api/character/reset", async (req, res) => {
     maxHealth: DEFAULT_HEALTH.maxHealth,
   };
   await writeJson(HEALTH_FILE, state);
+  await signalPet("RESET");
   res.json(state);
+});
+
+// Drive the pet by hand. Body: { command, amount } where command is one of
+// DAMAGE, HEAL, RESET, BOTHER and amount is an optional integer that only
+// DAMAGE and HEAL use.
+app.post("/api/arduino", async (req, res) => {
+  const { command, amount } = req.body ?? {};
+
+  const verb = String(command ?? "")
+    .trim()
+    .toUpperCase();
+
+  if (!ARDUINO_COMMANDS.includes(verb)) {
+    return res.status(400).json({
+      success: false,
+      error: `Unknown command. Use one of ${ARDUINO_COMMANDS.join(", ")}.`,
+    });
+  }
+
+  if (amount !== null && amount !== undefined && !Number.isFinite(Number(amount))) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Amount must be a number." });
+  }
+
+  try {
+    const result = await sendToArduino(verb, amount ?? null);
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    console.error("Failed to signal the Arduino:", err);
+    return res
+      .status(500)
+      .json({ success: false, error: "Server failed to reach the Arduino." });
+  }
 });
 
 // Pulls the player's recent Screenpipe activity, asks OpenAI (via dispatch) to
@@ -152,6 +215,11 @@ app.post("/api/screenpipe", async (req, res) => {
       typeof codexData.reasoning === "string" ? codexData.reasoning : "";
 
     const health = await applyDamage(damage);
+
+    // Mirror the same hit onto the physical pet.
+    if (damage > 0) {
+      await signalPet("DAMAGE", damage);
+    }
 
     // Note: Added damage here so you don't lose that data, remove if unneeded
     const newEntry = {
@@ -241,4 +309,5 @@ app.post("/api/answer", async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
+  openArduino({ onConnect: syncPetHealth });
 });

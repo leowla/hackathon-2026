@@ -269,7 +269,7 @@ void setup()
 
   Serial.println("Arduino ready");
   Serial.println(
-    "Commands: DAMAGE [amount], HEAL [amount], DEATH, RESET, BOTHER, DESPERATE"
+    "Commands: DAMAGE[:n], HEAL[:n], DEATH, RESET, BOTHER, DESPERATE"
   );
 }
 
@@ -331,6 +331,28 @@ void checkButtonPress()
 // Serial command handling
 // ==================================================
 
+// True only for a non-empty run of digits.
+// toInt() answers 0 for anything it cannot parse, and 0 is a meaningful
+// amount, so the digits have to be checked before trusting the conversion.
+bool isNumeric(const String &value)
+{
+  if (value.length() == 0)
+  {
+    return false;
+  }
+
+  for (unsigned int index = 0; index < value.length(); index++)
+  {
+    if (!isDigit(value.charAt(index)))
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
 void checkSerialCommand()
 {
   if (Serial.available() <= 0)
@@ -338,73 +360,59 @@ void checkSerialCommand()
     return;
   }
 
-  String command = Serial.readStringUntil('\n');
+  String line = Serial.readStringUntil('\n');
 
-  command.trim();
-  command.toUpperCase();
+  line.trim();
+  line.toUpperCase();
 
   // Commands are case-insensitive because the input is normalized above.
-  if (command.length() == 0)
+  if (line.length() == 0)
   {
     return;
   }
 
-  int separatorIndex = command.indexOf(' ');
-  String commandName = command;
-  String amountText = "";
+  // Signals arrive as "COMMAND" or "COMMAND:AMOUNT". A missing or malformed
+  // amount stays -1, which tells the handler to use its built-in step.
+  String command = line;
+  int amount = -1;
 
-  if (separatorIndex >= 0)
+  int separator = line.indexOf(':');
+
+  if (separator >= 0)
   {
-    commandName = command.substring(0, separatorIndex);
-    amountText = command.substring(separatorIndex + 1);
-    amountText.trim();
+    command = line.substring(0, separator);
+    command.trim();
+
+    String value = line.substring(separator + 1);
+    value.trim();
+
+    if (isNumeric(value))
+    {
+      amount = value.toInt();
+    }
   }
 
-  int amount = healthChange;
-
-  if (
-    amountText.length() > 0 &&
-    commandName != "DAMAGE" &&
-    commandName != "HEAL"
-  )
-  {
-    Serial.print("ERROR: Command does not accept a health amount: ");
-    Serial.println(commandName);
-    return;
-  }
-
-  if (
-    amountText.length() > 0 &&
-    !parseHealthAmount(amountText, amount)
-  )
-  {
-    Serial.print("ERROR: Invalid health amount for command: ");
-    Serial.println(command);
-    Serial.println("Use DAMAGE 10 or HEAL 10 with an amount from 1 to 100.");
-    return;
-  }
-
-  if (commandName == "DAMAGE")
+  if (command == "DAMAGE")
   {
     handleDamage(amount);
   }
-  else if (commandName == "HEAL")
+  else if (command == "HEAL")
   {
     handleHeal(amount);
   }
-  else if (commandName == "DEATH")
+  else if (command == "DEATH")
   {
     handleDeath();
   }
-  else if (commandName == "RESET")
+  else if (command == "RESET")
   {
     handleReset();
   }
-  else if (commandName == "BOTHER")
+  else if (command == "BOTHER")
   {
     handleBother();
   }
-  else if (commandName == "DESPERATE")
+  else if (command == "DESPERATE")
   {
     handleDesperate();
   }
@@ -414,7 +422,7 @@ void checkSerialCommand()
     Serial.println(command);
 
     Serial.println(
-      "Valid commands: DAMAGE [amount], HEAL [amount], DEATH, RESET, BOTHER, DESPERATE"
+      "Valid commands: DAMAGE[:n], HEAL[:n], DEATH, RESET, BOTHER, DESPERATE"
     );
   }
 }
@@ -424,25 +432,22 @@ void checkSerialCommand()
 // Health helpers
 // ==================================================
 
-bool parseHealthAmount(
-  String amountText,
-  int &amount
-)
+// Turn the amount parsed off the serial line into a usable health step.
+// A negative amount means the sender omitted it, so the built-in step keeps
+// the original behaviour for bare DAMAGE and HEAL commands.
+int resolveAmount(int amount)
 {
-  for (int i = 0; i < amountText.length(); i++)
+  if (amount < 0)
   {
-    if (!isDigit(amountText.charAt(i)))
-    {
-      return false;
-    }
+    return healthChange;
   }
 
-  amount = amountText.toInt();
+  if (amount > maxHealth)
+  {
+    return maxHealth;
+  }
 
-  return (
-    amount > 0 &&
-    amount <= maxHealth
-  );
+  return amount;
 }
 
 
@@ -511,7 +516,16 @@ void handleDamage(int amount)
     return;
   }
 
-  healthLevel -= amount;
+  int step = resolveAmount(amount);
+
+  // A zero step is a valid signal, it just has nothing to apply.
+  if (step == 0)
+  {
+    Serial.println("DAMAGE ignored. Amount is 0.");
+    return;
+  }
+
+  healthLevel -= step;
 
   // This damage caused death
   if (healthLevel <= 0)
@@ -532,7 +546,8 @@ void handleDamage(int amount)
   }
 
   updateHealthDisplay();
-  // With the current 20% damage step, "below 50%" first happens at 40%.
+  // The step is now sender-controlled, so a single hit can cross the
+  // threshold. The flag still keeps the alarm from restarting every hit.
   if (
     healthLevel < desperateHealthThreshold &&
     !desperateAlertPlayed
@@ -595,7 +610,16 @@ void handleHeal(int amount)
     return;
   }
 
-  healthLevel += amount;
+  int step = resolveAmount(amount);
+
+  // A zero step is a valid signal, it just has nothing to apply.
+  if (step == 0)
+  {
+    Serial.println("HEAL ignored. Amount is 0.");
+    return;
+  }
+
+  healthLevel += step;
 
   if (healthLevel > maxHealth)
   {
