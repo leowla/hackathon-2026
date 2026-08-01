@@ -1,4 +1,10 @@
-export async function dispatch(prompt) {
+const OpenAI = require('openai');
+
+// Initialize the OpenAI client. It automatically looks for the
+// process.env.OPENAI_API_KEY environment variable.
+const openai = new OpenAI();
+
+async function dispatch(prompt) {
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     response_format: { type: "json_object" },
@@ -13,4 +19,8 @@ export async function dispatch(prompt) {
       }
     ],
   });
+
+  return response.choices[0].message.content;
 }
+
+module.exports = { dispatch };

@@ -1,111 +1,207 @@
-require('dotenv').config(); // MUST BE AT THE TOP
+require("dotenv").config(); // MUST BE AT THE TOP
 
-
-const express = require('express');
-const fs = require('fs');
-const OpenAI = require('openai'); // 1. Import OpenAI
-const { dispatch } = require('./ai');
-
-// 2. Initialize the OpenAI client. 
-// It automatically looks for the process.env.OPENAI_API_KEY environment variable.
-const openai = new OpenAI();
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const { dispatch } = require("./ai");
 
 const app = express();
 const port = 3321;
 
+app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('Hello World! Your Express server is running.');
+const CHOICES_FILE = "./user_choices.json";
+const QUESTIONS_FILE = "./questions.json";
+const HEALTH_FILE = "./character.json";
+const DEFAULT_HEALTH = { health: 100, maxHealth: 100 };
+
+const SCREENPIPE_BASE_URL =
+  process.env.SCREENPIPE_BASE_URL || "http://localhost:3030";
+const SCREENPIPE_API_KEY = process.env.SCREENPIPE_LOCAL_API_KEY;
+const ACTIVITY_WINDOW = process.env.ACTIVITY_WINDOW || "10m";
+
+async function readJson(filePath, fallback) {
+  try {
+    const raw = await fs.promises.readFile(filePath, "utf-8");
+    return JSON.parse(raw);
+  } catch (err) {
+    if (err.code !== "ENOENT") {
+      throw err;
+    }
+    return fallback;
+  }
+}
+
+async function writeJson(filePath, data) {
+  await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
+}
+
+async function getHealth() {
+  const state = await readJson(HEALTH_FILE, DEFAULT_HEALTH);
+  return {
+    health:
+      typeof state.health === "number" ? state.health : DEFAULT_HEALTH.health,
+    maxHealth:
+      typeof state.maxHealth === "number"
+        ? state.maxHealth
+        : DEFAULT_HEALTH.maxHealth,
+  };
+}
+
+async function applyDamage(damage) {
+  const current = await getHealth();
+  const next = {
+    health: Math.max(0, Math.min(current.maxHealth, current.health - damage)),
+    maxHealth: current.maxHealth,
+  };
+  await writeJson(HEALTH_FILE, next);
+  return next;
+}
+
+async function fetchRecentActivity() {
+  const url = `${SCREENPIPE_BASE_URL}/activity-summary?start_time=${encodeURIComponent(`${ACTIVITY_WINDOW} ago`)}&end_time=now`;
+  const headers = SCREENPIPE_API_KEY
+    ? { Authorization: `Bearer ${SCREENPIPE_API_KEY}` }
+    : {};
+
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    throw new Error(`Screenpipe request failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+app.get("/", (req, res) => {
+  res.send("Hello World! Your Express server is running.");
 });
 
-app.get('/api/status', (req, res) => {
-  res.json({ status: 'online', tool: 'Express' });
+app.get("/api/status", (req, res) => {
+  res.json({ status: "online", tool: "Express" });
 });
 
-app.post('/api/screenpipe', async (req, res) => {
-  // Extract screenPipeResponse from the request body
-  const screenPipeResponse = req.body.screenPipeResponse;
+app.get("/api/character", async (req, res) => {
+  const state = await getHealth();
+  res.json(state);
+});
 
-  if (!screenPipeResponse) {
-    return res.status(400).send("No screenPipeResponse found in request");
+app.post("/api/character/reset", async (req, res) => {
+  const state = {
+    health: DEFAULT_HEALTH.maxHealth,
+    maxHealth: DEFAULT_HEALTH.maxHealth,
+  };
+  await writeJson(HEALTH_FILE, state);
+  res.json(state);
+});
+
+// Pulls the player's recent Screenpipe activity, asks OpenAI (via dispatch) to
+// judge it against their stated intention, and applies the resulting damage
+// to their character.
+app.post("/api/screenpipe", async (req, res) => {
+  const userChoices = await readJson(CHOICES_FILE, null);
+
+  if (!userChoices || !userChoices.intention) {
+    return res
+      .status(400)
+      .json({ success: false, error: "No intention set yet." });
+  }
+
+  let activitySummary;
+  try {
+    activitySummary = await fetchRecentActivity();
+  } catch (err) {
+    console.error("Failed to fetch Screenpipe activity:", err);
+    return res.status(502).json({
+      success: false,
+      error: "Could not reach Screenpipe. Is it running?",
+    });
   }
 
   try {
-    // 3. Make the API request using the initialized 'openai' client
-    const output = await dispatch();
+    const prompt =
+      "You are the referee of a focus game. The player stated an intention and, optionally, " +
+      "a list of URLs relevant to that intention. You are given a summary of their recent " +
+      "screen and audio activity from Screenpipe. Decide how much the player strayed from " +
+      "their intention during this window. Respond with strict JSON only: " +
+      '{"damage": <integer 0-100>, "reasoning": "<one short sentence>"}. ' +
+      "0 damage means they stayed on track or there is not enough evidence of straying. " +
+      "10 damage means they were completely off-task for the whole window.\n\n" +
+      JSON.stringify({
+        intention: userChoices.intention,
+        relevantUrls: userChoices.urls ?? [],
+        activitySummary,
+      });
+
+    const textOutput = await dispatch(prompt);
     let codexData;
 
-    // 2. Parse the string response into a usable JavaScript object
     try {
-      codexData = JSON.parse(output);
+      codexData = JSON.parse(textOutput);
     } catch (parseErr) {
       console.error("Failed to parse OpenAI response as JSON:", parseErr);
-      return res.status(500).json({ success: false, error: "Invalid JSON from AI" });
+      return res
+        .status(500)
+        .json({ success: false, error: "Invalid JSON from AI" });
     }
 
-    // 3. Extract the variables now that it is parsed
-    const questions = codexData.questions;
-    const damage = codexData.damage;
+    // Extract the variables now that it is parsed, clamping damage to a sane range
+    const rawDamage = Number(codexData.damage);
+    const damage = Number.isFinite(rawDamage)
+      ? Math.max(0, Math.min(100, Math.round(rawDamage)))
+      : 0;
+    const reasoning =
+      typeof codexData.reasoning === "string" ? codexData.reasoning : "";
+
+    const health = await applyDamage(damage);
 
     // Note: Added damage here so you don't lose that data, remove if unneeded
-    const newEntry = { questions, damage };
-    const filePath = './questions.json';
-    let questionsArray = [];
-
-    // 4. Read the existing file using Promises
-    try {
-      const existingData = await fs.promises.readFile(filePath, 'utf-8');
-      questionsArray = JSON.parse(existingData);
-
-      if (!Array.isArray(questionsArray)) {
-        questionsArray = [];
-      }
-    } catch (fileErr) {
-      if (fileErr.code !== 'ENOENT') {
-        throw fileErr;
-      }
-      console.log("questions.json does not exist yet. Creating a new one.");
-    }
-
-    // 5. Append the new entry and write back to the file
+    const newEntry = {
+      at: new Date().toISOString(),
+      intention: userChoices.intention,
+      damage,
+      reasoning,
+    };
+    const existing = await readJson(QUESTIONS_FILE, []);
+    const questionsArray = Array.isArray(existing) ? existing : [];
     questionsArray.push(newEntry);
-
-    await fs.promises.writeFile(filePath, JSON.stringify(questionsArray, null, 2), 'utf-8');
+    await writeJson(QUESTIONS_FILE, questionsArray);
     console.log("Successfully appended to questions.json");
 
-    // 6. Send the response back to the client using res.json()
     return res.status(200).json({
       success: true,
-      data: codexData // Returning the parsed object instead of the raw string
+      damage,
+      reasoning,
+      health: health.health,
+      maxHealth: health.maxHealth,
     });
-
   } catch (error) {
     console.error("Error communicating with OpenAI:", error);
-    res.status(500).send("Server failed to communicate with OpenAI.");
+    res.status(500).json({
+      success: false,
+      error: "Server failed to communicate with OpenAI.",
+    });
   }
 });
 
-app.post('/api/user-choices', (req, res) => {
-  const userChoices = req.body.user_choice;
+app.post("/api/user-choices", async (req, res) => {
+  const { intention, urls } = req.body ?? {};
 
-  if (!userChoices) {
-    return res.status(400).send("No user_choice found in request");
+  if (!intention && !urls) {
+    return res.status(400).send("No intention or urls found in request");
   }
 
-  const jsonString = JSON.stringify(userChoices, null, 2);
-
-  fs.writeFile("./user_choices.json", jsonString, 'utf-8', (err) => {
-    if (err) {
-      console.error("There is an err", err);
-      return res.status(500).send("Server failed to write file.");
-    }
-    console.log("no error lol");
+  try {
+    await writeJson(CHOICES_FILE, {
+      intention: intention ?? "",
+      urls: urls ?? [],
+    });
     res.status(200).send("User choices saved successfully!");
-  });
+  } catch (err) {
+    console.error("Failed to save user choices", err);
+    res.status(500).send("Server failed to write file.");
+  }
 });
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
-;
