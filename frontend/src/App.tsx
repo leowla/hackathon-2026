@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSavedUrls } from './hooks/useSavedUrls'
 import { IntentionsPage } from './pages/IntentionsPage'
 import { UrlsPage } from './pages/UrlsPage'
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import { useSocket } from './hooks/useSocket';
 
 type Page = 'intentions' | 'urls'
 
 export default function App() {
   const { urls, addUrl, removeUrl } = useSavedUrls()
+  const { question, isSpeaking, sendAnswer, buttonPressCount } = useSocket()
   const [intention, setIntention] = useState('')
   const [page, setPage] = useState<Page>('intentions')
 
@@ -18,11 +20,25 @@ export default function App() {
     browserSupportsSpeechRecognition
   } = useSpeechRecognition();
 
+  const transcriptRef = useRef(transcript)
+  transcriptRef.current = transcript
+
+  useEffect(() => {
+    if (question && !isSpeaking) {
+      resetTranscript();
+      SpeechRecognition.startListening({ continuous: true })
+    }
+  }, [question, isSpeaking])
+
+  useEffect(() => {
+    if (buttonPressCount === 0) return
+    SpeechRecognition.stopListening()
+    sendAnswer(transcriptRef.current)
+  }, [buttonPressCount])
+
   if (!browserSupportsSpeechRecognition) {
     return <span>Your browser doesn't support speech recognition.</span>;
   }
-
-  
 
   return (
     <main className="app">
@@ -43,20 +59,20 @@ export default function App() {
       )}
 
       <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h2>Voice Recognition App</h2>
-      <p>Microphone is: <strong>{listening ? 'ON 🎙️' : 'OFF 🔇'}</strong></p>
-      
-      <div style={{ gap: '10px', display: 'flex', marginBottom: '20px' }}>
-        {/* startListening is asynchronous and prompts the user for mic permissions */}
-        <button onClick={() => SpeechRecognition.startListening({ continuous: true })}>Start</button>
-        <button onClick={SpeechRecognition.stopListening}>Stop</button>
-        <button onClick={resetTranscript}>Reset</button>
+        <h2>Voice Recognition App</h2>
+        <p>Microphone is: <strong>{listening ? 'ON 🎙️' : 'OFF 🔇'}</strong></p>
+
+        <div style={{ gap: '10px', display: 'flex', marginBottom: '20px' }}>
+          {/* startListening is asynchronous and prompts the user for mic permissions */}
+          <button onClick={() => SpeechRecognition.startListening({ continuous: true })}>Start</button>
+          <button onClick={SpeechRecognition.stopListening}>Stop</button>
+          <button onClick={resetTranscript}>Reset</button>
+        </div>
+
+        <div style={{ border: '1px solid #ccc', padding: '10px', minHeight: '100px' }}>
+          {transcript || 'Start speaking to see text here...'}
+        </div>
       </div>
-      
-      <div style={{ border: '1px solid #ccc', padding: '10px', minHeight: '100px' }}>
-        {transcript || 'Start speaking to see text here...'}
-      </div>
-    </div>
 
 
     </main>

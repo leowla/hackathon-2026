@@ -12,8 +12,10 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "http": "^0.0.1-security",
     "openai": "^7.3.0",
     "play-sound": "^1.1.6",
+    "ws": "^8.21.1",
     "serialport": "^13.0.0"
   },
   "devDependencies": {
