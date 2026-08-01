@@ -38,8 +38,8 @@ port.on("open", () => {
     arduinoReady = true;
 
     console.log("\nAvailable commands:");
-    console.log("  DAMAGE [amount] - Reduce health, defaults to 20");
-    console.log("  HEAL [amount]   - Restore health, defaults to 20");
+    console.log("  DAMAGE[:amount] - Reduce health, defaults to 20");
+    console.log("  HEAL[:amount]   - Restore health, defaults to 20");
     console.log("  DEATH   - Set health to 0");
     console.log("  RESET   - Start again at 100%");
     console.log("  BOTHER  - Play attention sound");
@@ -90,7 +90,10 @@ port.on("close", () => {
 // Handle commands typed in the terminal.
 terminal.on("line", (input) => {
   const command = input.trim().toUpperCase();
-  const commandParts = command.split(/\s+/);
+
+  // Accept "DAMAGE 10" or "DAMAGE:10" at the prompt. Either way the signal
+  // goes out colon-delimited, which is the only form the Arduino parses.
+  const commandParts = command.split(/[\s:]+/);
   const commandName = commandParts[0];
   const amountText = commandParts[1];
 
@@ -113,7 +116,7 @@ terminal.on("line", (input) => {
   if (!validCommands.includes(commandName)) {
     console.log(`ERROR: "${command}" is not a valid command.`);
     console.log(
-      "Use DAMAGE [amount], HEAL [amount], DEATH, RESET, BOTHER, or EXIT."
+      "Use DAMAGE[:amount], HEAL[:amount], DEATH, RESET, BOTHER, or EXIT."
     );
     terminal.prompt();
     return;
@@ -126,20 +129,32 @@ terminal.on("line", (input) => {
     return;
   }
 
-  sendCommand(command);
+  sendCommand(commandName, amountText);
 });
 
+// Build the line the Arduino expects: "COMMAND" or "COMMAND:AMOUNT".
+function buildSignal(commandName, amountText) {
+  if (amountText === undefined || amountText === "") {
+    return `${commandName}\n`;
+  }
+
+  return `${commandName}:${amountText}\n`;
+}
+
 // Send a command to Arduino.
-function sendCommand(command) {
-  // Add a newline for Arduino readStringUntil('\n').
-  port.write(`${command}\n`, (error) => {
+function sendCommand(commandName, amountText) {
+  // The newline terminates the line for Arduino readStringUntil('\n').
+  const signal = buildSignal(commandName, amountText);
+  const shown = signal.trim();
+
+  port.write(signal, (error) => {
     if (error) {
-      console.error(`Failed to send ${command}: ${error.message}`);
+      console.error(`Failed to send ${shown}: ${error.message}`);
       terminal.prompt();
       return;
     }
 
-    console.log(`Sent: ${command}`);
+    console.log(`Sent: ${shown}`);
     terminal.prompt();
   });
 }
