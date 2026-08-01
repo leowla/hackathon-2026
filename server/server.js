@@ -8,9 +8,11 @@ const { dispatch } = require('./ai');
 
 // 2. Initialize the OpenAI client. 
 // It automatically looks for the process.env.OPENAI_API_KEY environment variable.
-const openai = new OpenAI();
-
+const openai = new OpenAI(); 
+const cors = require('cors');
 const app = express();
+
+app.use(cors()); 
 const port = 3321;
 
 app.use(express.json());
@@ -55,35 +57,43 @@ app.post('/api/screenpipe', async (req, res) => {
 
     // 4. Read the existing file using Promises
     try {
-      const existingData = await fs.promises.readFile(filePath, 'utf-8');
-      questionsArray = JSON.parse(existingData);
+        // 3. Make the API request using the initialized 'openai' client
+        const response = await openai.chat.completions.create({ // Ensure you use 'openai' if that's what you named your client
+            model: "gpt-4o-mini",
+            response_format: { type: "json_object" }, // This ensures OpenAI returns clean JSON
+            messages: [
+                { 
+                    role: "system", 
+                    content: "You must respond with valid JSON." 
+                },
+                { 
+                    role: "user", 
+                    content: `return {damage: 42069}` // temporary promt 
+                }
+            ],
+        });
 
-      if (!Array.isArray(questionsArray)) {
-        questionsArray = [];
-      }
-    } catch (fileErr) {
-      if (fileErr.code !== 'ENOENT') {
-        throw fileErr;
-      }
-      console.log("questions.json does not exist yet. Creating a new one.");
+        const textOutput = response.choices[0].message.content;
+        let codexData;
+
+        // 2. Parse the string response into a usable JavaScript object
+        try {
+            codexData = JSON.parse(textOutput);
+        } catch (parseErr) {
+            console.error("Failed to parse OpenAI response as JSON:", parseErr);
+            return res.status(500).json({ success: false, error: "Invalid JSON from AI" });
+        }
+
+        // 6. Send the response back to the client using res.json()
+        return res.status(200).json({ 
+            success: true, 
+            data: codexData // Returning the parsed object instead of the raw string
+        });
+
+    } catch (error) {
+        console.error("Error communicating with OpenAI:", error);
+        res.status(500).send("Server failed to communicate with OpenAI.");
     }
-
-    // 5. Append the new entry and write back to the file
-    questionsArray.push(newEntry);
-
-    await fs.promises.writeFile(filePath, JSON.stringify(questionsArray, null, 2), 'utf-8');
-    console.log("Successfully appended to questions.json");
-
-    // 6. Send the response back to the client using res.json()
-    return res.status(200).json({
-      success: true,
-      data: codexData // Returning the parsed object instead of the raw string
-    });
-
-  } catch (error) {
-    console.error("Error communicating with OpenAI:", error);
-    res.status(500).send("Server failed to communicate with OpenAI.");
-  }
 });
 
 app.post('/api/user-choices', (req, res) => {
