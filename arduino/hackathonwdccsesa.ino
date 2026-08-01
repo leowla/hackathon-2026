@@ -269,7 +269,7 @@ void setup()
 
   Serial.println("Arduino ready");
   Serial.println(
-    "Commands: DAMAGE, HEAL, DEATH, RESET, BOTHER, DESPERATE"
+    "Commands: DAMAGE[:n], HEAL[:n], DEATH, RESET, BOTHER, DESPERATE"
   );
 }
 
@@ -331,6 +331,28 @@ void checkButtonPress()
 // Serial command handling
 // ==================================================
 
+// True only for a non-empty run of digits.
+// toInt() answers 0 for anything it cannot parse, and 0 is a meaningful
+// amount, so the digits have to be checked before trusting the conversion.
+bool isNumeric(const String &value)
+{
+  if (value.length() == 0)
+  {
+    return false;
+  }
+
+  for (unsigned int index = 0; index < value.length(); index++)
+  {
+    if (!isDigit(value.charAt(index)))
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
 void checkSerialCommand()
 {
   if (Serial.available() <= 0)
@@ -338,24 +360,45 @@ void checkSerialCommand()
     return;
   }
 
-  String command = Serial.readStringUntil('\n');
+  String line = Serial.readStringUntil('\n');
 
-  command.trim();
-  command.toUpperCase();
+  line.trim();
+  line.toUpperCase();
 
   // Commands are case-insensitive because the input is normalized above.
-  if (command.length() == 0)
+  if (line.length() == 0)
   {
     return;
   }
 
+  // Signals arrive as "COMMAND" or "COMMAND:AMOUNT". A missing or malformed
+  // amount stays -1, which tells the handler to use its built-in step.
+  String command = line;
+  int amount = -1;
+
+  int separator = line.indexOf(':');
+
+  if (separator >= 0)
+  {
+    command = line.substring(0, separator);
+    command.trim();
+
+    String value = line.substring(separator + 1);
+    value.trim();
+
+    if (isNumeric(value))
+    {
+      amount = value.toInt();
+    }
+  }
+
   if (command == "DAMAGE")
   {
-    handleDamage();
+    handleDamage(amount);
   }
   else if (command == "HEAL")
   {
-    handleHeal();
+    handleHeal(amount);
   }
   else if (command == "DEATH")
   {
@@ -379,7 +422,7 @@ void checkSerialCommand()
     Serial.println(command);
 
     Serial.println(
-      "Valid commands: DAMAGE, HEAL, DEATH, RESET, BOTHER, DESPERATE"
+      "Valid commands: DAMAGE[:n], HEAL[:n], DEATH, RESET, BOTHER, DESPERATE"
     );
   }
 }
@@ -388,6 +431,25 @@ void checkSerialCommand()
 // ==================================================
 // Health helpers
 // ==================================================
+
+// Turn the amount parsed off the serial line into a usable health step.
+// A negative amount means the sender omitted it, so the built-in step keeps
+// the original behaviour for bare DAMAGE and HEAL commands.
+int resolveAmount(int amount)
+{
+  if (amount < 0)
+  {
+    return healthChange;
+  }
+
+  if (amount > maxHealth)
+  {
+    return maxHealth;
+  }
+
+  return amount;
+}
+
 
 bool decreaseHealthBy10()
 {
@@ -438,7 +500,7 @@ bool increaseHealthBy10()
 // DAMAGE
 // ==================================================
 
-void handleDamage()
+void handleDamage(int amount)
 {
   // Already dead
   if (healthLevel <= 0)
@@ -454,7 +516,16 @@ void handleDamage()
     return;
   }
 
-  healthLevel -= healthChange;
+  int step = resolveAmount(amount);
+
+  // A zero step is a valid signal, it just has nothing to apply.
+  if (step == 0)
+  {
+    Serial.println("DAMAGE ignored. Amount is 0.");
+    return;
+  }
+
+  healthLevel -= step;
 
   // This damage caused death
   if (healthLevel <= 0)
@@ -475,7 +546,8 @@ void handleDamage()
   }
 
   updateHealthDisplay();
-  // With the current 20% damage step, "below 50%" first happens at 40%.
+  // The step is now sender-controlled, so a single hit can cross the
+  // threshold. The flag still keeps the alarm from restarting every hit.
   if (
     healthLevel < desperateHealthThreshold &&
     !desperateAlertPlayed
@@ -511,7 +583,7 @@ void handleDamage()
 // HEAL
 // ==================================================
 
-void handleHeal()
+void handleHeal(int amount)
 {
   // A dead pet must be reset
   if (healthLevel <= 0)
@@ -538,7 +610,16 @@ void handleHeal()
     return;
   }
 
-  healthLevel += healthChange;
+  int step = resolveAmount(amount);
+
+  // A zero step is a valid signal, it just has nothing to apply.
+  if (step == 0)
+  {
+    Serial.println("HEAL ignored. Amount is 0.");
+    return;
+  }
+
+  healthLevel += step;
 
   if (healthLevel > maxHealth)
   {

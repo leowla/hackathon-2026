@@ -15,7 +15,8 @@
     "http": "^0.0.1-security",
     "openai": "^7.3.0",
     "play-sound": "^1.1.6",
-    "ws": "^8.21.1"
+    "ws": "^8.21.1",
+    "serialport": "^13.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
