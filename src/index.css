@@ -83,6 +83,37 @@ p {
   margin-bottom: 12px;
 }
 
+/* Intention */
+
+.intention {
+  margin-bottom: 20px;
+}
+
+.intention__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.intention__input {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  font: inherit;
+  color: var(--text-h);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.intention__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
 /* Form */
 
 .url-form__row {
