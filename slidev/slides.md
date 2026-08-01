@@ -40,11 +40,13 @@ title: Attention is leaking, and nobody <em>feels</em> it.
 <!-- We've all got a habit app we installed and ignored within a week. The limit is easy to swipe past because nothing is actually at stake. -->
 
 ---
-layout: fact
-kicker: Screen time
-value: "9"
-unit: "hours"
-label: daily screen time for Gen Z worldwide.
+layout: stats
+kicker: Recreational screen time
+title: It's hurting the younger generation.
+stats:
+  - { value: 4.7, unit: "hrs", label: "Ages 8–12 · up from 2h19 in 2011", icon: "lucide:tablet-smartphone", tone: warn }
+  - { value: 7.4, unit: "hrs", label: "Ages 13–18 · up ~90min since 2015", icon: "lucide:smartphone", tone: bad }
+foot: "Source: WhenNotesFly — Screen Time Statistics 2026"
 ---
 
 ---
