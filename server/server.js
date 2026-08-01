@@ -279,7 +279,7 @@ app.post("/api/user-choices", async (req, res) => {
 const server = http.createServer(app);
 setupAnswerWebSocket(server);
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
   openArduino({ onConnect: syncPetHealth });
 });

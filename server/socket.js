@@ -1,5 +1,5 @@
 import { WebSocketServer } from "ws";
-import { dispatch } from "./ai";
+import { dispatch } from "./ai.js";
 
 function send(ws, type, payload = {}) {
   ws.send(JSON.stringify({ type, ...payload }));
