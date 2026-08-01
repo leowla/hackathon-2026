@@ -1,8 +1,8 @@
-import 'dotenv/config'; // MUST BE AT THE TOP
-import express from 'express';
-import cors from 'cors';
-import fs from 'fs';
-import { dispatch } from './ai.js';
+import "dotenv/config"; // MUST BE AT THE TOP
+import express from "express";
+import cors from "cors";
+import fs from "fs";
+import { dispatch } from "./ai.js";
 
 const app = express();
 const port = 3321;
@@ -124,7 +124,7 @@ app.post("/api/screenpipe", async (req, res) => {
       "their intention during this window. Respond with strict JSON only: " +
       '{"damage": <integer 0-100>, "reasoning": "<one short sentence>"}. ' +
       "0 damage means they stayed on track or there is not enough evidence of straying. " +
-      "100 damage means they were completely off-task for the whole window.\n\n" +
+      "10 damage means they were completely off-task for the whole window.\n\n" +
       JSON.stringify({
         intention: userChoices.intention,
         relevantUrls: userChoices.urls ?? [],
@@ -201,37 +201,42 @@ app.post("/api/user-choices", async (req, res) => {
   }
 });
 
-app.post('/api/answer', async (req, res) => {
-    // Extract the question we asked and the answer the user gave
-    const { question, answer } = req.body;
+app.post("/api/answer", async (req, res) => {
+  // Extract the question we asked and the answer the user gave
+  const { question, answer } = req.body;
 
-    if (typeof question !== 'string' || !question.trim()) {
-        return res.status(400).json({ success: false, error: "No question found in request" });
-    }
+  if (typeof question !== "string" || !question.trim()) {
+    return res
+      .status(400)
+      .json({ success: false, error: "No question found in request" });
+  }
 
-    if (typeof answer !== 'string' || !answer.trim()) {
-        return res.status(400).json({ success: false, error: "No answer found in request" });
-    }
+  if (typeof answer !== "string" || !answer.trim()) {
+    return res
+      .status(400)
+      .json({ success: false, error: "No answer found in request" });
+  }
 
-    console.log("Received question:", question);
-    console.log("Received answer:", answer);
+  console.log("Received question:", question);
+  console.log("Received answer:", answer);
 
-    try {
-        // Temporary promt: we only want to confirm the package arrives and the
-        // round trip works. Real grading promt goes here later.
-        const codexData = await dispatch(
-            `Question: ${question}\nAnswer: ${answer}\n\nIgnore the above for now and return {"score": 0}`
-        );
-        return res.status(200).json({ success: true, data: codexData });
-
-    } catch (error) {
-        console.error("Error communicating with OpenAI:", error);
-        return res.status(500).json({
-            success: false,
-            // Never forward OpenAI's own error text -- it can contain key fragments
-            error: error.isJsonParseError ? error.message : "Server failed to communicate with OpenAI."
-        });
-    }
+  try {
+    // Temporary promt: we only want to confirm the package arrives and the
+    // round trip works. Real grading promt goes here later.
+    const codexData = await dispatch(
+      `Question: ${question}\nAnswer: ${answer}\n\nIgnore the above for now and return {"score": 0}`,
+    );
+    return res.status(200).json({ success: true, data: codexData });
+  } catch (error) {
+    console.error("Error communicating with OpenAI:", error);
+    return res.status(500).json({
+      success: false,
+      // Never forward OpenAI's own error text -- it can contain key fragments
+      error: error.isJsonParseError
+        ? error.message
+        : "Server failed to communicate with OpenAI.",
+    });
+  }
 });
 
 app.listen(port, () => {
