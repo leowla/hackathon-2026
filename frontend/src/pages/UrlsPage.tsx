@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { DurationDialog } from '../components/DurationDialog'
 import { UrlForm } from '../components/UrlForm'
 import { UrlList } from '../components/UrlList'
 import type { AddUrlResult } from '../hooks/useSavedUrls'
@@ -11,10 +13,12 @@ type Props = {
 }
 
 export function UrlsPage({ urls, onAdd, onRemove, onBack }: Props) {
+  const [durationFor, setDurationFor] = useState<SavedUrl | null>(null)
+
   return (
     <>
       <button className="link-button" type="button" onClick={onBack}>
-        ← Back
+        Back
       </button>
 
       <header className="page__header">
@@ -28,8 +32,17 @@ export function UrlsPage({ urls, onAdd, onRemove, onBack }: Props) {
         <h2 className="page__section-title">
           Saved{urls.length > 0 && ` (${urls.length})`}
         </h2>
-        <UrlList urls={urls} onRemove={onRemove} />
+        <UrlList
+          urls={urls}
+          onRemove={onRemove}
+          onOpenDuration={setDurationFor}
+        />
       </section>
+
+      <DurationDialog
+        item={durationFor}
+        onClose={() => setDurationFor(null)}
+      />
     </>
   )
 }
