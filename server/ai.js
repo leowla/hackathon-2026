@@ -1,3 +1,7 @@
+import OpenAI from 'openai';
+
+const openai = new OpenAI();
+
 export async function dispatch(prompt) {
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -13,4 +17,6 @@ export async function dispatch(prompt) {
       }
     ],
   });
+
+  return response;
 }

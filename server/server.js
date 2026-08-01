@@ -1,18 +1,13 @@
-require('dotenv').config(); // MUST BE AT THE TOP
+import 'dotenv/config'; // MUST BE AT THE TOP
+import express from 'express';
+import fs from 'fs';
+import { dispatch } from './ai.js';
+import { txtToSpeech, playAudio } from './txttospeech.js';
 
-
-const express = require('express');
-const fs = require('fs');
-const OpenAI = require('openai'); // 1. Import OpenAI
-const { dispatch } = require('./ai');
-
-// 2. Initialize the OpenAI client. 
-// It automatically looks for the process.env.OPENAI_API_KEY environment variable.
-const openai = new OpenAI(); 
-const cors = require('cors');
+import cors from 'cors';
 const app = express();
 
-app.use(cors()); 
+app.use(cors());
 const port = 3321;
 
 app.use(express.json());
@@ -35,7 +30,7 @@ app.post('/api/screenpipe', async (req, res) => {
 
   try {
     // 3. Make the API request using the initialized 'openai' client
-    const output = await dispatch();
+    const output = await dispatch("hello");
     let codexData;
 
     // 2. Parse the string response into a usable JavaScript object
@@ -46,54 +41,13 @@ app.post('/api/screenpipe', async (req, res) => {
       return res.status(500).json({ success: false, error: "Invalid JSON from AI" });
     }
 
-    // 3. Extract the variables now that it is parsed
-    const questions = codexData.questions;
-    const damage = codexData.damage;
-
-    // Note: Added damage here so you don't lose that data, remove if unneeded
-    const newEntry = { questions, damage };
-    const filePath = './questions.json';
-    let questionsArray = [];
-
-    // 4. Read the existing file using Promises
-    try {
-        // 3. Make the API request using the initialized 'openai' client
-        const response = await openai.chat.completions.create({ // Ensure you use 'openai' if that's what you named your client
-            model: "gpt-4o-mini",
-            response_format: { type: "json_object" }, // This ensures OpenAI returns clean JSON
-            messages: [
-                { 
-                    role: "system", 
-                    content: "You must respond with valid JSON." 
-                },
-                { 
-                    role: "user", 
-                    content: `return {damage: 42069}` // temporary promt 
-                }
-            ],
-        });
-
-        const textOutput = response.choices[0].message.content;
-        let codexData;
-
-        // 2. Parse the string response into a usable JavaScript object
-        try {
-            codexData = JSON.parse(textOutput);
-        } catch (parseErr) {
-            console.error("Failed to parse OpenAI response as JSON:", parseErr);
-            return res.status(500).json({ success: false, error: "Invalid JSON from AI" });
-        }
-
-        // 6. Send the response back to the client using res.json()
-        return res.status(200).json({ 
-            success: true, 
-            data: codexData // Returning the parsed object instead of the raw string
-        });
-
-    } catch (error) {
-        console.error("Error communicating with OpenAI:", error);
-        res.status(500).send("Server failed to communicate with OpenAI.");
-    }
+    return res.status(200).json({
+      success: true,
+      data: codexData // Returning the parsed object instead of the raw string
+    });
+  } catch (err) {
+    console.error(err);
+  }
 });
 
 app.post('/api/user-choices', (req, res) => {
@@ -119,3 +73,6 @@ app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
 ;
+
+const jimmy = await txtToSpeech("hello kim how are you man");
+const play = await playAudio(jimmy);
