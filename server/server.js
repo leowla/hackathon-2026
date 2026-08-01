@@ -126,8 +126,8 @@ app.post("/api/character/reset", async (req, res) => {
 });
 
 // Drive the pet by hand. Body: { command, amount } where command is one of
-// DAMAGE, HEAL, RESET, BOTHER and amount is an optional integer that only
-// DAMAGE and HEAL use.
+// DAMAGE, HEAL, RESET, BOTHER, DEATH and amount is an optional integer that
+// only DAMAGE and HEAL use.
 app.post("/api/arduino", async (req, res) => {
   const { command, amount } = req.body ?? {};
 
