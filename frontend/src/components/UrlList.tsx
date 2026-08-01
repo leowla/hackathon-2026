@@ -1,3 +1,4 @@
+import { shortUrl, siteLabel } from '../lib/url'
 import type { SavedUrl } from '../types'
 
 type Props = {
@@ -17,10 +18,12 @@ export function UrlList({ urls, onRemove }: Props) {
           <a
             className="url-list__link"
             href={item.url}
+            title={item.url}
             target="_blank"
             rel="noopener noreferrer"
           >
-            {item.url}
+            <span className="url-list__label">{siteLabel(item.url)}</span>
+            <span className="url-list__url">{shortUrl(item.url)}</span>
           </a>
           <button
             className="url-list__remove"
