@@ -4,8 +4,6 @@ theme: slidev-theme-tahta
 themeConfig:
   variant: soft
   accent: "#2546c7"
-# apply UnoCSS classes to the current slide
-class: text-center
 # https://sli.dev/features/drawing
 drawings:
   persist: false
@@ -16,18 +14,30 @@ comark: true
 # duration of the presentation
 duration: 6min
 layout: cover
+bg: aurora
 kicker: WDCC x SESA Hackathon 2026
 title: HabitRabbit
-subtitle: "<span style='padding-left: 5rem'>A companion that feels what you forget</span>"
+subtitle: "A companion that feels what you forget"
 ---
 
 ---
-layout: statement
-title: The Problem
+layout: default
+kicker: The problem
+title: Attention is leaking, and nobody <em>feels</em> it.
 ---
 
-- Bad habits and passive scrolling quietly erode focus, memory, and mental wellbeing
-- Existing fixes (habit apps, screen-time limits) are easy to dismiss — no emotional stakes
+<v-clicks>
+
+- Bad habits and passive scrolling quietly erode focus, memory, and wellbeing
+- Existing fixes — habit apps, screen-time limits — are easy to dismiss
+
+</v-clicks>
+
+<Reveal :delay="300">
+<Callout tone="warn" icon="lucide:battery-low">No emotional stakes, no behavior change.</Callout>
+</Reveal>
+
+<!-- We've all got a habit app we installed and ignored within a week. The limit is easy to swipe past because nothing is actually at stake. -->
 
 ---
 layout: fact
@@ -38,569 +48,129 @@ label: daily screen time for Gen Z worldwide.
 ---
 
 ---
+layout: bigtype
+bg: mesh
 kicker: The insight
-layout: statement
-title: What if forgetting to reflect had a visible, physical cost?
+title: A visible, <em>physical</em> cost.
+subtitle: What if forgetting to reflect had one?
 ---
 
+<!-- Not another notification you can dismiss. A face, in the room with you, that visibly needs you. -->
+
 ---
-layout: showcase
+layout: feature
+glow: true
 kicker: Your companion
 title: HabitRabbit
-subtitle: Feels what you forget to reflect on
+features:
+  - { icon: "lucide:heart", title: "Healthy", desc: "Doing what you set out to do today" }
+  - { icon: "lucide:heart-crack", title: "Damage", desc: "Caught doomscrolling instead" }
+  - { icon: "lucide:heart-pulse", title: "Healing", desc: "Reflect out loud, recover together" }
 ---
 
-- Healthy
-- Damage
-- Healing
-
-<!-- A character that visibly needs you creates a different kind of accountability than a progress bar or notification you swipe away -->
+<!-- A character that visibly needs you creates a different kind of accountability than a progress bar or notification you swipe away. -->
 
 ---
-
-# Code
-
-Use code snippets and get the highlighting directly, and even types hover!
-
-```ts [filename-example.ts] {all|4|6|6-7|9|all} twoslash
-// TwoSlash enables TypeScript hover information
-// and errors in markdown code blocks
-// More at https://shiki.style/packages/twoslash
-import { computed, ref } from "vue";
-
-const count = ref(0);
-const doubled = computed(() => count.value * 2);
-
-doubled.value = 2;
-```
-
-<arrow v-click="[4, 5]" x1="350" y1="310" x2="195" y2="342" color="#953" width="2" arrowSize="1" />
-
-<!-- This allow you to embed external code blocks -->
-
-<<< @/snippets/external.ts#snippet
-
-<!-- Footer -->
-
-[Learn more](https://sli.dev/features/line-highlighting)
-
-<!-- Inline style -->
-<style>
-.footnotes-sep {
-  @apply mt-5 opacity-10;
-}
-.footnotes {
-  @apply text-sm opacity-75;
-}
-.footnote-backref {
-  display: none;
-}
-</style>
-
-<!--
-Notes can also sync with clicks
-
-[click] This will be highlighted after the first click
-
-[click] Highlighted with `count = ref(0)`
-
-[click:3] Last click (skip two clicks)
--->
-
+layout: steps
+kicker: The loop
+title: One companion, a daily loop
+steps:
+  - { title: "Set an intention", desc: "Tell it the habit you want to break", icon: "lucide:target" }
+  - { title: "It watches quietly", desc: "Screen + mic activity, summarized locally", icon: "lucide:eye" }
+  - { title: "Slip up, take damage", desc: "An AI judge scores the penalty", icon: "lucide:heart-crack" }
+  - { title: "Reflect to heal", desc: "Answer a spoken question about today", icon: "lucide:sparkles" }
 ---
 
-## level: 2
-
-# Shiki Magic Move
-
-Powered by [shiki-magic-move](https://shiki-magic-move.netlify.app/), Slidev supports animations across multiple code snippets.
-
-Add multiple code blocks and wrap them with <code>````md magic-move</code> (four backticks) to enable the magic move. For example:
-
-````md magic-move {lines: true}
-```ts {*|2|*}
-// step 1
-const author = reactive({
-  name: "John Doe",
-  books: [
-    "Vue 2 - Advanced Guide",
-    "Vue 3 - Basic Guide",
-    "Vue 4 - The Mystery",
-  ],
-});
-```
-
-```ts {*|1-2|3-4|3-4,8}
-// step 2
-export default {
-  data() {
-    return {
-      author: {
-        name: "John Doe",
-        books: [
-          "Vue 2 - Advanced Guide",
-          "Vue 3 - Basic Guide",
-          "Vue 4 - The Mystery",
-        ],
-      },
-    };
-  },
-};
-```
-
-```ts
-// step 3
-export default {
-  data: () => ({
-    author: {
-      name: "John Doe",
-      books: [
-        "Vue 2 - Advanced Guide",
-        "Vue 3 - Basic Guide",
-        "Vue 4 - The Mystery",
-      ],
-    },
-  }),
-};
-```
-
-Non-code blocks are ignored.
-
-```vue
-<!-- step 4 -->
-<script setup>
-const author = {
-  name: "John Doe",
-  books: [
-    "Vue 2 - Advanced Guide",
-    "Vue 3 - Basic Guide",
-    "Vue 4 - The Mystery",
-  ],
-};
-</script>
-```
-````
+<!-- This is the whole product in four beats. Everything after this slide is how we built each step. -->
 
 ---
-
-# Components
-
-<div grid="~ cols-2 gap-4">
-<div>
-
-You can use Vue components directly inside your slides.
-
-We have provided a few built-in components like `<Tweet/>`, `<BlueSky/>`, and `<Youtube/>` that you can use directly. And adding your custom components is also super easy.
-
-```html
-<Counter :count="10" />
-```
-
-<!-- ./components/Counter.vue -->
-<Counter :count="10" m="t-4" />
-
-Check out [the guides](https://sli.dev/builtin/components.html) for more.
-
-</div>
-<div>
-
-```html
-<Tweet id="1390115482657726468" />
-```
-
-<Tweet id="1390115482657726468" scale="0.65" />
-
-</div>
-</div>
-
-<!--
-Presenter note with **bold**, *italic*, and ~~striked~~ text.
-
-Also, HTML elements are valid:
-<div class="flex w-full">
-  <span style="flex-grow: 1;">Left content</span>
-  <span>Right content</span>
-</div>
--->
-
+layout: vs
+kicker: Two loops, one bunny
+title: Slip up, or show up
+label: vs
+left: { title: Damage, items: ["Screenpipe flags doomscrolling / short-form loops", "AI judge compares activity to your stated intention", "Health drops, buzzer bothers you", "LCD face sags"] }
+right: { title: Healing, items: ["Push the button, or just answer when asked", "It asks what you learned today", "Speak your answer into the mic", "Health recovers, face brightens"] }
 ---
 
-## class: px-20
-
-# Themes
-
-Slidev comes with powerful theming support. Themes can provide styles, layouts, components, or even configurations for tools. Switching between themes by just **one edit** in your frontmatter:
-
-<div grid="~ cols-2 gap-2" m="t-2">
-
-```yaml
 ---
-theme: default
+layout: diagram
+glow: true
+build: true
+kicker: Under the hood
+title: Four systems, one nervous system
+note: The judge sits in the middle — every signal, human or hardware, routes through its judgment.
 ---
-```
-
-```yaml
----
-theme: seriph
----
-```
-
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-default/01.png?raw=true" alt="">
-
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-seriph/01.png?raw=true" alt="">
-
-</div>
-
-Read more about [How to use a theme](https://sli.dev/guide/theme-addon#use-theme) and
-check out the [Awesome Themes Gallery](https://sli.dev/resources/theme-gallery).
-
----
-
-# Clicks Animations
-
-You can add `v-click` to elements to add a click animation.
-
-<div v-click>
-
-This shows up when you press <kbd>space</kbd> or <kbd>right</kbd>, or click outside the slide on the right.
-
-```html
-<div v-click>This shows up when you trigger a click animation.</div>
-```
-
-</div>
-
-<p v-click>
-You can also add modifiers to change the animation:
-</p>
-
-<div class="grid gap-3 mt-4 text-sm" style="grid-template-columns: repeat(3, 1fr) 1.5fr 1fr">
-  <div v-after.up class="p-3 rounded border border-primary/20 bg-primary/10">
-    <div class="font-mono text-xs opacity-60 mb-1">v-click.up</div>
-    <div>Slide from bottom</div>
-  </div>
-  <div v-click.fade-in class="p-3 rounded border border-primary/30 bg-primary/15">
-    <div class="font-mono text-xs opacity-60 mb-1">v-click.fade-in</div>
-    <div>Fade in</div>
-  </div>
-  <div v-click.fade class="p-3 rounded border border-primary/40 bg-primary/20">
-    <div class="font-mono text-xs opacity-60 mb-1">v-click.fade</div>
-    <div>Dim (0.5 opacity)</div>
-  </div>
-  <div v-click.fade.right.scale class="p-3 rounded border border-primary/50 bg-primary/25">
-    <div class="font-mono text-xs opacity-60 mb-1">v-click.fade.right.scale</div>
-    <div>Composed</div>
-  </div>
-  <div v-click.none class="p-3 rounded border border-primary/60 bg-primary/30">
-    <div class="font-mono text-xs opacity-60 mb-1">v-click.none</div>
-    <div>No transition</div>
-  </div>
-</div>
-
-<v-click>
-
-The <span v-mark.red="7"><code>v-mark</code> directive</span>
-also allows you to add
-<span v-mark.circle.orange="8">inline marks</span>
-, powered by [Rough Notation](https://roughnotation.com/):
-
-```html
-<span v-mark.underline.orange>inline markers</span>
-```
-
-</v-click>
-
-<div v-click mt-12>
-
-[Learn more](https://sli.dev/guide/animations#click-animation)
-
-</div>
-
----
-
-# Motions
-
-Motion animations are powered by [@vueuse/motion](https://motion.vueuse.org/), triggered by `v-motion` directive.
-
-```html
-<div
-  v-motion
-  :initial="{ x: -80 }"
-  :enter="{ x: 0 }"
-  :click-3="{ x: 80 }"
-  :leave="{ x: 1000 }"
->
-  Slidev
-</div>
-```
-
-<div class="w-60 relative">
-  <div class="relative w-40 h-40">
-    <img
-      v-motion
-      :initial="{ x: 800, y: -100, scale: 1.5, rotate: -50 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-square.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ y: 500, x: -100, scale: 2 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-circle.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ x: 600, y: 400, scale: 2, rotate: 100 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-triangle.png"
-      alt=""
-    />
-  </div>
-
-  <div
-    class="text-5xl absolute top-14 left-40 text-[#2B90B6] -z-1"
-    v-motion
-    :initial="{ x: -80, opacity: 0}"
-    :enter="{ x: 0, opacity: 1, transition: { delay: 2000, duration: 1000 } }">
-    Slidev
-  </div>
-</div>
-
-<!-- vue script setup scripts can be directly used in markdown, and will only affects current page -->
-<script setup lang="ts">
-const final = {
-  x: 0,
-  y: 0,
-  rotate: 0,
-  scale: 1,
-  transition: {
-    type: 'spring',
-    damping: 10,
-    stiffness: 20,
-    mass: 2
-  }
-}
-</script>
-
-<div
-  v-motion
-  :initial="{ x:35, y: 30, opacity: 0}"
-  :enter="{ y: 0, opacity: 1, transition: { delay: 3500 } }">
-
-[Learn more](https://sli.dev/guide/animations.html#motion)
-
-</div>
-
----
-
-# $\LaTeX$
-
-$\LaTeX$ is supported out-of-box. Powered by [$\KaTeX$](https://katex.org/).
-
-<div h-3 />
-
-Inline $\sqrt{3x-1}+(1+x)^2$
-
-Block
-
-$$
-{1|3|all}
-\begin{aligned}
-\nabla \cdot \vec{E} &= \frac{\rho}{\varepsilon_0} \\
-\nabla \cdot \vec{B} &= 0 \\
-\nabla \times \vec{E} &= -\frac{\partial\vec{B}}{\partial t} \\
-\nabla \times \vec{B} &= \mu_0\vec{J} + \mu_0\varepsilon_0\frac{\partial\vec{E}}{\partial t}
-\end{aligned}
-$$
-
-[Learn more](https://sli.dev/features/latex)
-
----
-
-# Diagrams
-
-You can create diagrams / graphs from textual descriptions, directly in your Markdown.
-
-<div class="grid grid-cols-4 gap-5 pt-4 -mb-6">
-
-```mermaid {scale: 0.5, alt: 'A simple sequence diagram'}
-sequenceDiagram
-    Alice->John: Hello John, how are you?
-    Note over Alice,John: A typical interaction
-```
-
-```mermaid {theme: 'neutral', scale: 0.8}
-graph TD
-B[Text] --> C{Decision}
-C -->|One| D[Result 1]
-C -->|Two| E[Result 2]
-```
 
 ```mermaid
-mindmap
-  root((mindmap))
-    Origins
-      Long history
-      ::icon(fa fa-book)
-      Popularisation
-        British popular psychology author Tony Buzan
-    Research
-      On effectiveness<br/>and features
-      On Automatic creation
-        Uses
-            Creative techniques
-            Strategic planning
-            Argument mapping
-    Tools
-      Pen and paper
-      Mermaid
+flowchart LR
+  SP["Screenpipe · screen + mic"] --> REF["AI judge · gpt-4o-mini"]
+  Intention["Your stated intention"] --> REF
+  REF -->|DAMAGE n| Bridge["Node serial bridge"]
+  Bridge --> Bunny["Arduino LCD bunny"]
+  Bunny -->|BUTTON_PUSHED| REF
+  REF -->|question| TTS["Fish Audio TTS"]
+  TTS --> Mic["You, out loud"]
+  Mic --> REF
 ```
 
-```plantuml {scale: 0.7}
-@startuml
-
-package "Some Group" {
-  HTTP - [First Component]
-  [Another Component]
-}
-
-node "Other Groups" {
-  FTP - [Second Component]
-  [First Component] --> FTP
-}
-
-cloud {
-  [Example 1]
-}
-
-database "MySql" {
-  folder "This is my folder" {
-    [Folder 3]
-  }
-  frame "Foo" {
-    [Frame 4]
-  }
-}
-
-[Another Component] --> [Example 1]
-[Example 1] --> [Folder 3]
-[Folder 3] --> [Frame 4]
-
-@enduml
-```
-
-</div>
-
-Learn more: [Mermaid Diagrams](https://sli.dev/features/mermaid) and [PlantUML Diagrams](https://sli.dev/features/plantuml)
+<!-- Screenpipe never leaves the machine — only a short activity summary reaches the judge. The bunny only ever sees DAMAGE / HEAL / BOTHER over serial. -->
 
 ---
-
-foo: bar
-dragPos:
-square: 691,32,167,\_,-16
-
+layout: panels
+title: Four systems, one bunny
+panels:
+  - { icon: "lucide:monitor", title: Habit detection, items: ["Screenpipe records screen + audio locally", "A scheduled pipe summarizes activity every 10 minutes"] }
+  - { icon: "lucide:scale", title: AI judge, items: ["gpt-4o-mini scores drift 0–100", "Judges activity against your stated intention"] }
+  - { icon: "lucide:cpu", title: Arduino companion, items: ["LCD face, buzzer, push button", "Serial bridge: DAMAGE / HEAL / BOTHER / RESET"] }
+  - { icon: "lucide:mic", title: Voice reflection, items: ["Fish Audio speaks the day's question", "You answer out loud to heal"] }
 ---
 
-dragPos:
-square: 0,-79,0,0
-
 ---
-dragPos:
-  square: 0,-79,0,0
----
-
-# Draggable Elements
-
-Double-click on the draggable elements to edit their positions.
-
-<br>
-
-###### Directive Usage
-
-```md
-<img v-drag="'square'" src="https://sli.dev/logo.png">
-```
-
-<br>
-
-###### Component Usage
-
-```md
-<v-drag text-3xl>
-  <div class="i-carbon:arrow-up" />
-  Use the `v-drag` component to have a draggable container!
-</v-drag>
-```
-
-<v-drag pos="663,206,261,_,-15">
-  <div text-center text-3xl border border-main rounded>
-    Double-click me!
-  </div>
-</v-drag>
-
-<img v-drag="'square'" src="https://sli.dev/logo.png">
-
-###### Draggable Arrow
-
-```md
-<v-drag-arrow two-way />
-```
-
-<v-drag-arrow pos="67,452,253,46" two-way op70 />
-
+layout: code-explain
+kicker: The AI judge
+title: Judging consequences via JSON
+notes:
+  - "<strong>Context</strong> — your intention, saved URLs, and Screenpipe's activity summary go in."
+  - "<strong>Strict output</strong> — the model is forced to return just a damage score and one reason."
+  - "<strong>Clamped</strong> — damage is capped 0–100 before it ever reaches the bunny."
 ---
 
-src: ./pages/imported-slides.md
-hide: false
+```js
+const prompt =
+  "You are the judge of a focus game. Decide how much the player " +
+  "strayed from their intention. Respond with strict JSON only: " +
+  '{"damage": <integer 0-100>, "reasoning": "<one short sentence>"}';
 
----
-
-
----
-
-# Monaco Editor
-
-Slidev provides built-in Monaco Editor support.
-
-Add `{monaco}` to the code block to turn it into an editor:
-
-```ts {monaco}
-import { ref } from "vue";
-import { emptyArray } from "./external";
-
-const arr = ref(emptyArray(10));
-```
-
-Use `{monaco-run}` to create an editor that can execute the code directly in the slide:
-
-```ts {monaco-run}
-import { version } from "vue";
-import { emptyArray, sayHello } from "./external";
-
-sayHello();
-console.log(`vue ${version}`);
-console.log(
-  emptyArray<number>(10).reduce(
-    (fib) => [...fib, fib.at(-1)! + fib.at(-2)!],
-    [1, 1],
-  ),
-);
+const damage = Math.max(0, Math.min(100, Math.round(rawDamage)));
+await applyDamage(damage); // → serial: DAMAGE <n> → the bunny winces
 ```
 
 ---
-
-layout: center
-class: text-center
-
+layout: bigtype
+bg: grain
+kicker: Why a toy, not another app
+title: A bunny wincing you <em>can't</em> ignore.
+subtitle: Unlike a notification.
 ---
 
-# Learn More
+---
+layout: timeline
+kicker: Roadmap
+title: Where HabitRabbit goes next
+events:
+  - { date: Now, title: Solo bunny, desc: "One habit, one companion, hackathon build" }
+  - { date: Next, title: More habits, desc: "User-defined bad habits beyond doomscrolling" }
+  - { date: Later, title: Smarter reflection, desc: "Spaced-repetition prompts, not just daily recall" }
+  - { date: Someday, title: Open hardware kit, desc: "3D-printed shell, buy-the-parts guide" }
+---
 
-[Documentation](https://sli.dev) · [GitHub](https://github.com/slidevjs/slidev) · [Showcases](https://sli.dev/resources/showcases)
+---
+layout: end
+bg: aurora
+title: HabitRabbit
+subtitle: A companion that feels what you forget
+---
 
-<PoweredBySlidev mt-10 />
+<Reveal :delay="300">
+<Tags :items="['Screenpipe', 'gpt-4o-mini', 'Arduino', 'Fish Audio TTS', 'React']" />
+</Reveal>
