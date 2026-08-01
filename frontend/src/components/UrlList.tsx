@@ -3,12 +3,18 @@ import type { SavedUrl } from '../types'
 
 type Props = {
   urls: SavedUrl[]
-  onRemove: (id: string) => void
+  /** Omit to render the list read-only, without Delete buttons. */
+  onRemove?: (id: string) => void
+  emptyText?: string
 }
 
-export function UrlList({ urls, onRemove }: Props) {
+export function UrlList({
+  urls,
+  onRemove,
+  emptyText = 'No URLs saved yet.',
+}: Props) {
   if (urls.length === 0) {
-    return <p className="url-list__empty">No URLs saved yet.</p>
+    return <p className="url-list__empty">{emptyText}</p>
   }
 
   return (
@@ -25,14 +31,16 @@ export function UrlList({ urls, onRemove }: Props) {
             <span className="url-list__label">{siteLabel(item.url)}</span>
             <span className="url-list__url">{shortUrl(item.url)}</span>
           </a>
-          <button
-            className="url-list__remove"
-            type="button"
-            onClick={() => onRemove(item.id)}
-            aria-label={`Delete ${item.url}`}
-          >
-            Delete
-          </button>
+          {onRemove && (
+            <button
+              className="url-list__remove"
+              type="button"
+              onClick={() => onRemove(item.id)}
+              aria-label={`Delete ${item.url}`}
+            >
+              Delete
+            </button>
+          )}
         </li>
       ))}
     </ul>
