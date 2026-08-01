@@ -4,7 +4,15 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon app.js"
+    "dev": "nodemon server.js"
+  },
+  "nodemonConfig": {
+    "_comment": "The server writes these itself -- without this it restarts on every request",
+    "ignore": [
+      "answers.json",
+      "questions.json",
+      "user_choices.json"
+    ]
   },
   "keywords": [],
   "type": "commonjs",

@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Secrets -- never commit
+.env
+.env.*
+
+# Written by the server at runtime, regenerates on its own
+answers.json
+questions.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
