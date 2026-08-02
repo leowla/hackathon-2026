@@ -18,6 +18,7 @@ import {
   sendToArduino,
 } from "./arduino.js";
 import { generateQuestion } from "./question.js";
+import { applyDamage, getHealth, resetHealth } from "./health.js";
 
 const app = express();
 const port = 3321;
@@ -27,8 +28,6 @@ app.use(express.json());
 
 const CHOICES_FILE = "./user_choices.json";
 const QUESTIONS_FILE = "./questions.json";
-const HEALTH_FILE = "./character.json";
-const DEFAULT_HEALTH = { health: 100, maxHealth: 100 };
 
 const SCREENPIPE_BASE_URL =
   process.env.SCREENPIPE_BASE_URL || "http://localhost:3030";
@@ -50,18 +49,6 @@ async function readJson(filePath, fallback) {
 
 async function writeJson(filePath, data) {
   await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
-}
-
-async function getHealth() {
-  const state = await readJson(HEALTH_FILE, DEFAULT_HEALTH);
-  return {
-    health:
-      typeof state.health === "number" ? state.health : DEFAULT_HEALTH.health,
-    maxHealth:
-      typeof state.maxHealth === "number"
-        ? state.maxHealth
-        : DEFAULT_HEALTH.maxHealth,
-  };
 }
 
 export async function appendQuestion(
@@ -106,16 +93,6 @@ export async function appendQuestion(
   } catch (error) {
     console.error("Error appending question to file:", error);
   }
-}
-
-async function applyDamage(damage) {
-  const current = await getHealth();
-  const next = {
-    health: Math.max(0, Math.min(current.maxHealth, current.health - damage)),
-    maxHealth: current.maxHealth,
-  };
-  await writeJson(HEALTH_FILE, next);
-  return next;
 }
 
 // The pet has its own health counter, so a failed signal must never turn a
@@ -172,11 +149,7 @@ app.get("/api/character", async (req, res) => {
 });
 
 app.post("/api/character/reset", async (req, res) => {
-  const state = {
-    health: DEFAULT_HEALTH.maxHealth,
-    maxHealth: DEFAULT_HEALTH.maxHealth,
-  };
-  await writeJson(HEALTH_FILE, state);
+  const state = await resetHealth();
   await signalPet("RESET");
   res.json(state);
 });

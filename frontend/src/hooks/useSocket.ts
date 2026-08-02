@@ -3,11 +3,14 @@ import { speak } from '../lib/tts'
 
 const WS_URL = 'ws://localhost:3321/ws/device'
 
+type Health = { health: number; maxHealth: number }
+
 export function useSocket() {
   const [question, setQuestion] = useState<string | null>(null)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [startListeningSignal, setStartListeningSignal] = useState(0)
   const [stopListeningSignal, setStopListeningSignal] = useState(0)
+  const [health, setHealth] = useState<Health | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
@@ -69,7 +72,15 @@ export function useSocket() {
           console.log('[socket] result:', msg)
         }
 
-        if (!['question', 'start-listening', 'stop-listening', 'error', 'result'].includes(msg.type)) {
+        if (msg.type === 'health') {
+          setHealth({ health: msg.health, maxHealth: msg.maxHealth })
+        }
+
+        if (msg.type === 'arduino-result') {
+          console.log('[socket] arduino result:', msg)
+        }
+
+        if (!['question', 'start-listening', 'stop-listening', 'error', 'result', 'health', 'arduino-result'].includes(msg.type)) {
           console.warn('[socket] unhandled message type:', msg.type, msg)
         }
       }
@@ -107,5 +118,36 @@ export function useSocket() {
     wsRef.current.send(JSON.stringify(payload))
   }
 
-  return { question, sendAnswer, isSpeaking, startListeningSignal, stopListeningSignal }
+  function sendMessage(payload: Record<string, unknown>) {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('[socket] sendMessage skipped', { payload, readyState: wsRef.current?.readyState })
+      return
+    }
+    console.log('[socket] sending:', payload)
+    wsRef.current.send(JSON.stringify(payload))
+  }
+
+  function sendDamage(amount: number) {
+    sendMessage({ type: 'damage', amount })
+  }
+
+  function sendHeal(amount: number) {
+    sendMessage({ type: 'heal', amount })
+  }
+
+  function sendArduinoCommand(command: string, amount?: number) {
+    sendMessage({ type: 'arduino', command, amount: amount ?? null })
+  }
+
+  return {
+    question,
+    sendAnswer,
+    isSpeaking,
+    startListeningSignal,
+    stopListeningSignal,
+    health,
+    sendDamage,
+    sendHeal,
+    sendArduinoCommand,
+  }
 }
