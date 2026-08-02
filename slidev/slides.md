@@ -111,8 +111,7 @@ kicker: Roadmap
 title: Where HabitRabbit goes next
 events:
   - { date: Now, title: Solo bunny, desc: "One habit, one companion, hackathon build" }
-  - { date: Next, title: On your phone, desc: "Right where the scrolling happens" }
-  - { date: Later, title: Smarter reflection, desc: "Spaced-repetition prompts, not just daily recall" }
+  - { date: Later, title: On your phone, desc: "Right where the scrolling happens" }
   - { date: Someday, title: Open hardware kit, desc: "3D-printed shell, buy-the-parts guide" }
 ---
 
