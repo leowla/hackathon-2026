@@ -4,7 +4,7 @@ import cors from "cors";
 import fs from "fs";
 import http from "http";
 
-import { dispatch } from "./ai.js";
+import { dispatch, FOCUS_REFEREE_SYSTEM_PROMPT } from "./ai.js";
 import { sendQuestion, setupAnswerWebSocket } from "./socket.js";
 import { ARDUINO_COMMANDS, openArduino, sendToArduino } from "./arduino.js";
 import { generateQuestion } from "./question.js";
@@ -238,14 +238,7 @@ app.post("/api/screenpipe", async (req, res) => {
 
   try {
     const prompt =
-      "You are the referee of a focus game. The player stated an intention and, optionally, " +
-      "a list of URLs relevant to that intention. You are given a summary of their recent " +
-      "screen and audio activity from Screenpipe. Decide how much the player strayed from " +
-      "their intention during this window. Respond with strict JSON only: " +
-      '{"damage": <integer 0-100>, "reasoning": "<one short sentence>"}. ' +
-      "0 damage means they stayed on track or there is not enough evidence of straying. " +
-      "10 damage means they were completely off-task for the whole window.\n\n" +
-      'So return a number between 0 and 10 for the "damage" field, and a short reasoning sentence for the "reasoning" field. ' +
+      FOCUS_REFEREE_SYSTEM_PROMPT +
       JSON.stringify({
         intention: userChoices.intention,
         relevantUrls: userChoices.urls ?? [],
@@ -269,9 +262,6 @@ app.post("/api/screenpipe", async (req, res) => {
     const damage = Number.isFinite(rawDamage)
       ? Math.max(0, Math.min(100, Math.round(rawDamage)))
       : 0;
-    const reasoning =
-      typeof codexData.reasoning === "string" ? codexData.reasoning : "";
-
     const health = await applyDamage(damage);
     console.log(health);
 
@@ -306,7 +296,6 @@ app.post("/api/screenpipe", async (req, res) => {
       at: new Date().toISOString(),
       intention: userChoices.intention,
       damage,
-      reasoning,
     };
     const existing = await readJson(QUESTIONS_FILE, []);
     const questionsArray = Array.isArray(existing) ? existing : [];
@@ -317,7 +306,6 @@ app.post("/api/screenpipe", async (req, res) => {
     return res.status(200).json({
       success: true,
       damage,
-      reasoning,
       health: health.health,
       maxHealth: health.maxHealth,
     });
