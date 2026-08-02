@@ -18,7 +18,17 @@ export function UrlList({
   emptyText = 'No URLs saved yet.',
 }: Props) {
   if (urls.length === 0) {
-    return <p className="url-list__empty">{emptyText}</p>
+    return (
+      <div className="url-list__empty">
+        <img
+          className="url-list__empty-mascot"
+          src="/rabbit-face.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <p>{emptyText}</p>
+      </div>
+    )
   }
 
   function handleRowClick(event: MouseEvent<HTMLLIElement>, item: SavedUrl) {

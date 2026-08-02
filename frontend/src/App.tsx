@@ -83,32 +83,62 @@ export default function App() {
         />
       ) : (
         <>
-        <UrlsPage
-          urls={urls}
-          onAdd={addUrl}
-          onRemove={removeUrl}
-          onBack={() => setPage('intentions')}
-        />
-        <button onClick={handleUserChoicesSubmit}>Submit</button>
+          <UrlsPage
+            urls={urls}
+            onAdd={addUrl}
+            onRemove={removeUrl}
+            onBack={() => setPage('intentions')}
+          />
+          <button
+            className="button button--submit app__submit"
+            type="button"
+            onClick={handleUserChoicesSubmit}
+          >
+            Submit
+          </button>
         </>
       )}
 
-      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <div className="voice-panel">
         <h2>Voice Recognition App</h2>
         <p>Microphone is: <strong>{listening ? 'ON 🎙️' : 'OFF 🔇'}</strong></p>
 
-        <div style={{ gap: '10px', display: 'flex', marginBottom: '20px' }}>
+        <div className="voice-panel__actions">
           {/* startListening is asynchronous and prompts the user for mic permissions */}
-          <button onClick={() => SpeechRecognition.startListening({ continuous: true })}>Start</button>
-          <button onClick={SpeechRecognition.stopListening}>Stop</button>
-          <button onClick={resetTranscript}>Reset</button>
+          <button
+            className="button button--start"
+            type="button"
+            onClick={() => SpeechRecognition.startListening({ continuous: true })}
+          >
+            Start
+          </button>
+          <button
+            className="button button--stop"
+            type="button"
+            onClick={SpeechRecognition.stopListening}
+          >
+            Stop
+          </button>
+          <button
+            className="button button--reset"
+            type="button"
+            onClick={resetTranscript}
+          >
+            Reset
+          </button>
         </div>
 
-        <div style={{ border: '1px solid #ccc', padding: '10px', minHeight: '100px' }}>
+        <div className="voice-panel__transcript">
           {transcript || 'Start speaking to see text here...'}
         </div>
       </div>
 
+      <img
+        className="moving-bunny"
+        src="/moving-bunny-pixel.gif"
+        alt=""
+        aria-hidden="true"
+      />
 
     </main>
   )

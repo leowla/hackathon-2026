@@ -38,7 +38,7 @@ export function UrlForm({ onAdd }: Props) {
           }}
         />
         <button
-          className="button"
+          className="button button--save"
           type="submit"
           disabled={value.trim() === ''}
         >

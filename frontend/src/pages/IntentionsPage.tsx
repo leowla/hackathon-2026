@@ -18,8 +18,18 @@ export function IntentionsPage({
   return (
     <>
       <header className="page__header">
-        <h1 className="page__title">This App</h1>
-        <p className="page__intro">Say what you're trying to do.</p>
+        <div className="brand">
+          <img
+            className="brand__mascot"
+            src="/rabbit-face.png"
+            alt=""
+            aria-hidden="true"
+          />
+          <h1 className="page__title">HabitRabbit</h1>
+        </div>
+        <p className="page__intro">
+          Build gentle habits with your little bunny companion.
+        </p>
       </header>
 
       <IntentionInput value={intention} onChange={onIntentionChange} />
