@@ -77,7 +77,7 @@ layout: vs
 kicker: Two loops, one bunny
 title: Slip up, or show up
 label: vs
-left: { title: Damage, items: ["Screenpipe flags doomscrolling / short-form loops", "AI judge compares activity to your stated intention", "Health drops, buzzer bothers you", "LCD face sags"] }
+left: { title: Damage, items: ["Screen tracker flags doomscrolling / short-form loops", "AI judge compares activity to your stated intention", "Health drops, buzzer bothers you", "LCD face sags"] }
 right: { title: Healing, items: ["Push the button, or just answer when asked", "It asks what you learned today", "Speak your answer into the mic", "Health recovers, face brightens"] }
 ---
 
@@ -103,7 +103,7 @@ flowchart LR
   Mic --> REF
 ```
 
-<!-- Screenpipe never leaves the machine — only a short activity summary reaches the judge. The bunny only ever sees DAMAGE / HEAL / BOTHER over serial. -->
+<!-- Screen tracking never leaves the machine — only a short activity summary reaches the judge. The bunny only ever sees DAMAGE / HEAL / BOTHER over serial. -->
 
 ---
 layout: timeline
@@ -123,5 +123,5 @@ subtitle: A companion that feels what you forget
 ---
 
 <Reveal :delay="300">
-<Tags :items="['Screenpipe', 'gpt-4o-mini', 'Arduino', 'Fish Audio TTS', 'React']" />
+<Tags :items="['Screen tracker', 'gpt-4o-mini', 'Arduino', 'Fish Audio TTS', 'React']" />
 </Reveal>
