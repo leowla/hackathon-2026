@@ -2,9 +2,9 @@ import { SerialPort } from "serialport";
 
 // The pet firmware reads one newline-terminated signal at a time, shaped as
 // either "COMMAND" or "COMMAND:AMOUNT". Only DAMAGE and HEAL carry an amount;
-// RESET and BOTHER are always bare. Sending a bare DAMAGE or HEAL makes the
-// board fall back to its own built-in 20 point step.
-export const ARDUINO_COMMANDS = ["DAMAGE", "HEAL", "RESET", "BOTHER"];
+// RESET, BOTHER and DEATH are always bare. Sending a bare DAMAGE or HEAL makes
+// the board fall back to its own built-in 20 point step.
+export const ARDUINO_COMMANDS = ["DAMAGE", "HEAL", "RESET", "BOTHER", "DEATH"];
 
 const AMOUNT_COMMANDS = ["DAMAGE", "HEAL"];
 

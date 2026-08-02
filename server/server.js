@@ -2,7 +2,10 @@ import "dotenv/config"; // MUST BE AT THE TOP
 import express from "express";
 import cors from "cors";
 import fs from "fs";
+import http from "http";
+
 import { dispatch } from "./ai.js";
+import { setupAnswerWebSocket } from "./socket.js";
 import { ARDUINO_COMMANDS, openArduino, sendToArduino } from "./arduino.js";
 
 const app = express();
@@ -123,8 +126,8 @@ app.post("/api/character/reset", async (req, res) => {
 });
 
 // Drive the pet by hand. Body: { command, amount } where command is one of
-// DAMAGE, HEAL, RESET, BOTHER and amount is an optional integer that only
-// DAMAGE and HEAL use.
+// DAMAGE, HEAL, RESET, BOTHER, DEATH and amount is an optional integer that
+// only DAMAGE and HEAL use.
 app.post("/api/arduino", async (req, res) => {
   const { command, amount } = req.body ?? {};
 
@@ -139,7 +142,11 @@ app.post("/api/arduino", async (req, res) => {
     });
   }
 
-  if (amount !== null && amount !== undefined && !Number.isFinite(Number(amount))) {
+  if (
+    amount !== null &&
+    amount !== undefined &&
+    !Number.isFinite(Number(amount))
+  ) {
     return res
       .status(400)
       .json({ success: false, error: "Amount must be a number." });
@@ -264,45 +271,10 @@ app.post("/api/user-choices", async (req, res) => {
   }
 });
 
-app.post("/api/answer", async (req, res) => {
-  // Extract the question we asked and the answer the user gave
-  const { question, answer } = req.body;
+const server = http.createServer(app);
+setupAnswerWebSocket(server);
 
-  if (typeof question !== "string" || !question.trim()) {
-    return res
-      .status(400)
-      .json({ success: false, error: "No question found in request" });
-  }
-
-  if (typeof answer !== "string" || !answer.trim()) {
-    return res
-      .status(400)
-      .json({ success: false, error: "No answer found in request" });
-  }
-
-  console.log("Received question:", question);
-  console.log("Received answer:", answer);
-
-  try {
-    // Temporary promt: we only want to confirm the package arrives and the
-    // round trip works. Real grading promt goes here later.
-    const codexData = await dispatch(
-      `Question: ${question}\nAnswer: ${answer}\n\nIgnore the above for now and return {"score": 0}`,
-    );
-    return res.status(200).json({ success: true, data: codexData });
-  } catch (error) {
-    console.error("Error communicating with OpenAI:", error);
-    return res.status(500).json({
-      success: false,
-      // Never forward OpenAI's own error text -- it can contain key fragments
-      error: error.isJsonParseError
-        ? error.message
-        : "Server failed to communicate with OpenAI.",
-    });
-  }
-});
-
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
   openArduino({ onConnect: syncPetHealth });
 });
