@@ -73,15 +73,6 @@ steps:
 <!-- This is the whole product in four beats. Everything after this slide is how we built each step. -->
 
 ---
-layout: vs
-kicker: Two loops, one bunny
-title: Slip up, or show up
-label: vs
-left: { title: Damage, items: ["Screen tracker flags doomscrolling / short-form loops", "AI judge compares activity to your stated intention", "Health drops, buzzer bothers you", "LCD face sags"] }
-right: { title: Healing, items: ["Push the button, or just answer when asked", "It asks what you learned today", "Speak your answer into the mic", "Health recovers, face brightens"] }
----
-
----
 layout: diagram
 glow: true
 build: true
