@@ -4,7 +4,7 @@ import cors from "cors";
 import fs from "fs";
 import http from "http";
 
-import { dispatch } from "./ai.js";
+import { dispatch, FOCUS_REFEREE_SYSTEM_PROMPT } from "./ai.js";
 import { setupAnswerWebSocket } from "./socket.js";
 import { ARDUINO_COMMANDS, openArduino, sendToArduino } from "./arduino.js";
 
@@ -188,13 +188,7 @@ app.post("/api/screenpipe", async (req, res) => {
 
   try {
     const prompt =
-      "You are the referee of a focus game. The player stated an intention and, optionally, " +
-      "a list of URLs relevant to that intention. You are given a summary of their recent " +
-      "screen and audio activity from Screenpipe. Decide how much the player strayed from " +
-      "their intention during this window. Respond with strict JSON only: " +
-      '{"damage": <integer 0-100>}. ' +
-      "0 damage means they stayed on track or there is not enough evidence of straying. " +
-      "10 damage means they were completely off-task for the whole window.\n\n" +
+      FOCUS_REFEREE_SYSTEM_PROMPT +
       JSON.stringify({
         intention: userChoices.intention,
         relevantUrls: userChoices.urls ?? [],

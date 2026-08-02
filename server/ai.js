@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 // process.env.OPENAI_API_KEY environment variable.
 const openai = new OpenAI();
 
-const FOCUS_REFEREE_SYSTEM_PROMPT = `
+export const FOCUS_REFEREE_SYSTEM_PROMPT = `
 You are a focus-game referee. Your only task is to assess whether a player's
 observed activity aligns with their declared intention.
 
