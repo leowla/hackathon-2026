@@ -7,6 +7,8 @@ import { useSocket } from './hooks/useSocket';
 
 type Page = 'intentions' | 'urls'
 
+
+
 export default function App() {
   const { urls, addUrl, removeUrl } = useSavedUrls()
   const { question, isSpeaking, sendAnswer, buttonPressCount } = useSocket()
@@ -40,6 +42,36 @@ export default function App() {
     return <span>Your browser doesn't support speech recognition.</span>;
   }
 
+  async function handleUserChoicesSubmit() {
+  try {
+    const response = await fetch("http://localhost:3321/api/user-choices", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      // Send the payload matching the { intention, urls } expected by req.body
+      body: JSON.stringify({
+        intention: intention,
+        urls: urls,
+      }),
+    });
+
+    if (!response.ok) {
+      // Capture the error message sent by the server (e.g. "No intention or urls found in request")
+      const errorMessage = await response.text();
+      throw new Error(`Server returned ${response.status}: ${errorMessage}`);
+    }
+
+    const successMessage = await response.text();
+    console.log("Success:", successMessage); // Should log: "User choices saved successfully!"
+    
+    return true; 
+  } catch (error) {
+    console.error("Error submitting user choices:", error);
+    return false;
+  }
+}
+
   return (
     <main className="app">
       {page === 'intentions' ? (
@@ -50,12 +82,15 @@ export default function App() {
           onGoToUrls={() => setPage('urls')}
         />
       ) : (
+        <>
         <UrlsPage
           urls={urls}
           onAdd={addUrl}
           onRemove={removeUrl}
           onBack={() => setPage('intentions')}
         />
+        <button onClick={handleUserChoicesSubmit}>Submit</button>
+        </>
       )}
 
       <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
