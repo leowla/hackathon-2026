@@ -10,49 +10,95 @@ export function useSocket() {
   const wsRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
-    const ws = new WebSocket(WS_URL)
-    wsRef.current = ws
+    let cancelled = false
+    let ws
+    let retryDelay = 1000
 
-    ws.onopen = () => {
-      console.log('Connected to answer socket')
-    }
+    function connect() {
+      console.log('[socket] connecting to', WS_URL)
+      ws = new WebSocket(WS_URL)
+      wsRef.current = ws
 
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data)
-
-      if (msg.type === 'question') {
-        setQuestion(msg.question)
-        setIsSpeaking(true);
-        speak(msg.question, () => setIsSpeaking(false)).catch((err) => {
-          console.error("TTS failed", err)
-          setIsSpeaking(false)
-        });
+      ws.onopen = () => {
+        if (cancelled) {
+          console.log('[socket] open fired after cancel, closing')
+          ws.close()
+          return
+        }
+        console.log('[socket] connected')
+        retryDelay = 1000
       }
 
-      if (msg.type === 'button-press') {
-        console.log('Button press:', msg.button)
-        setButtonPressCount((n) => n + 1)
+      ws.onmessage = (event) => {
+        console.log('[socket] raw message:', event.data)
+        let msg
+        try {
+          msg = JSON.parse(event.data)
+        } catch {
+          console.error('[socket] bad message (not JSON):', event.data)
+          return
+        }
+
+        console.log('[socket] parsed message:', msg)
+
+        if (msg.type === 'question') {
+          setQuestion(msg.question)
+          setIsSpeaking(true);
+          speak(msg.question, () => setIsSpeaking(false)).catch((err) => {
+            console.error("TTS failed", err)
+            setIsSpeaking(false)
+          });
+        }
+
+        if (msg.type === 'button-press') {
+          console.log('[socket] button press:', msg.button)
+          setButtonPressCount((n) => n + 1)
+        }
+
+        if (msg.type === 'error') {
+          console.error('[socket] server sent error:', msg.error)
+        }
+
+        if (msg.type === 'result') {
+          console.log('[socket] result:', msg)
+        }
+
+        if (!['question', 'button-press', 'error', 'result'].includes(msg.type)) {
+          console.warn('[socket] unhandled message type:', msg.type, msg)
+        }
       }
 
-      if (msg.type === 'error') {
-        console.error('Socket error message:', msg.error)
+      ws.onerror = (err) => {
+        console.error('[socket] error:', err)
+      }
+
+      ws.onclose = (event) => {
+        console.log('[socket] disconnected', { code: event.code, reason: event.reason, wasClean: event.wasClean })
+        if (!cancelled) {
+          console.log('[socket] reconnecting in', retryDelay, 'ms')
+          setTimeout(connect, retryDelay)
+          retryDelay = Math.min(retryDelay * 2, 30000)
+        }
       }
     }
+    connect()
 
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err)
+    return () => {
+      cancelled = true
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
     }
-
-    ws.onclose = () => {
-      console.log('Disconnected from answer socket')
-    }
-
-    return () => ws.close()
   }, [])
 
   function sendAnswer(answer: string) {
-    if (!question || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
-    wsRef.current.send(JSON.stringify({ type: 'answer-response', question, answer }))
+    if (!question || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('[socket] sendAnswer skipped', { question, readyState: wsRef.current?.readyState })
+      return
+    }
+    const payload = { type: 'answer-response', question, answer }
+    console.log('[socket] sending answer:', payload)
+    wsRef.current.send(JSON.stringify(payload))
   }
 
   return { question, sendAnswer, isSpeaking, buttonPressCount }
