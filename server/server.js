@@ -52,6 +52,43 @@ async function getHealth() {
   };
 }
 
+export async function appendQuestion(newQuestion, filePath = 'question.json') {
+  try {
+    let questions = [];
+
+    // 1. Try to read the existing file
+    try {
+      const data = await fs.readFile(filePath, 'utf8');
+      
+      // Parse the JSON data if the file is not empty
+      if (data.trim()) {
+        questions = JSON.parse(data);
+      }
+    } catch (readError) {
+      // If the file doesn't exist yet, we just catch the error 
+      // and continue with our empty `questions` array
+      if (readError.code !== 'ENOENT') {
+        throw readError;
+      }
+    }
+
+    // Ensure the parsed data is an array (just in case the JSON was an object)
+    if (!Array.isArray(questions)) {
+      questions = [questions];
+    }
+
+    // 2. Append the new entry
+    questions.push(newQuestion);
+
+    // 3. Write the updated array back to the file with nice formatting (2 spaces)
+    await fs.writeFile(filePath, JSON.stringify(questions, null, 2), 'utf8');
+    
+    console.log('Successfully appended to', filePath);
+  } catch (error) {
+    console.error('Error appending question to file:', error);
+  }
+}
+
 async function applyDamage(damage) {
   const current = await getHealth();
   const next = {
@@ -186,6 +223,8 @@ app.post("/api/screenpipe", async (req, res) => {
     });
   }
 
+  const currHealth = getHealth()
+
   try {
     const prompt =
       "You are the referee of a focus game. The player stated an intention and, optionally, " +
@@ -199,7 +238,9 @@ app.post("/api/screenpipe", async (req, res) => {
         intention: userChoices.intention,
         relevantUrls: userChoices.urls ?? [],
         activitySummary,
-      });
+      }); +
+      (currHealth < 50 && 'You have to return in the json a "question": "<generate one short question based on their recent activity if they are doing something technical like coding otherwise generate a general reflective question>"')
+
 
     const textOutput = await dispatch(prompt);
     let codexData;
@@ -220,6 +261,15 @@ app.post("/api/screenpipe", async (req, res) => {
       : 0;
     const reasoning =
       typeof codexData.reasoning === "string" ? codexData.reasoning : "";
+
+    if (codexData.question) {
+      const newEntry = {
+        timestamp: new Date().toISOString(),
+        activity: activitySummary, // Store the context
+        question: codexData.question // Store the generated question
+      }
+      await appendQuestion(newEntry, 'question.json')
+    }
 
     const health = await applyDamage(damage);
 

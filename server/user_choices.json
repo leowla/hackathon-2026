@@ -1,5 +1,10 @@
-[
-  "test1",
-  "test2",
-  "hartej"
-]
+{
+  "intention": "i want to stay off short form content",
+  "urls": [
+    {
+      "id": "cc1066aa-bb40-45e9-8cb6-e896d143bcee",
+      "url": "https://instagram.com",
+      "addedAt": 1785629266435
+    }
+  ]
+}
