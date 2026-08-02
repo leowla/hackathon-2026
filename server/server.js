@@ -239,7 +239,7 @@ app.post("/api/screenpipe", async (req, res) => {
         relevantUrls: userChoices.urls ?? [],
         activitySummary,
       }); +
-      'You have to return in the json a "question": "<generate one short question based on their recent activity if they are doing something technical like coding otherwise generate a general reflective question>"'
+      (currHealth < 50 && 'You have to return in the json a "question": "<generate one short question based on their recent activity if they are doing something technical like coding otherwise generate a general reflective question>"')
 
 
     const textOutput = await dispatch(prompt);
