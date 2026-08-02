@@ -3,7 +3,7 @@
 theme: slidev-theme-tahta
 themeConfig:
   variant: soft
-  accent: "#2546c7"
+  accent: "#6f5ccb"
 # https://sli.dev/features/drawing
 drawings:
   persist: false
@@ -22,6 +22,7 @@ subtitle: "A companion that feels what you forget"
 
 ---
 layout: default
+class: body-top
 kicker: The problem
 title: Attention is leaking, and nobody <em>feels</em> it.
 ---
@@ -53,24 +54,10 @@ foot: "Source: WhenNotesFly — Screen Time Statistics 2026"
 layout: bigtype
 bg: mesh
 kicker: The insight
-title: A visible, <em>physical</em> cost.
-subtitle: What if forgetting to reflect had one?
+title: 'What is <span class="pixel-logo">HabitRabbit</span>'
 ---
 
 <!-- Not another notification you can dismiss. A face, in the room with you, that visibly needs you. -->
-
----
-layout: feature
-glow: true
-kicker: Your companion
-title: HabitRabbit
-features:
-  - { icon: "lucide:heart", title: "Healthy", desc: "Doing what you set out to do today" }
-  - { icon: "lucide:heart-crack", title: "Damage", desc: "Caught doomscrolling instead" }
-  - { icon: "lucide:heart-pulse", title: "Healing", desc: "Reflect out loud, recover together" }
----
-
-<!-- A character that visibly needs you creates a different kind of accountability than a progress bar or notification you swipe away. -->
 
 ---
 layout: steps
@@ -105,8 +92,9 @@ note: The judge sits in the middle — every signal, human or hardware, routes t
 
 ```mermaid
 flowchart LR
-  SP["Screenpipe · screen + mic"] --> REF["AI judge · gpt-4o-mini"]
-  Intention["Your stated intention"] --> REF
+  Intention["Front End App"] --> REF["Server"]
+  AI["AI judge · gpt-4o-mini"] --> REF
+  REF --> AI
   REF -->|DAMAGE n| Bridge["Node serial bridge"]
   Bridge --> Bunny["Arduino LCD bunny"]
   Bunny -->|BUTTON_PUSHED| REF
@@ -118,51 +106,12 @@ flowchart LR
 <!-- Screenpipe never leaves the machine — only a short activity summary reaches the judge. The bunny only ever sees DAMAGE / HEAL / BOTHER over serial. -->
 
 ---
-layout: panels
-title: Four systems, one bunny
-panels:
-  - { icon: "lucide:monitor", title: Habit detection, items: ["Screenpipe records screen + audio locally", "A scheduled pipe summarizes activity every 10 minutes"] }
-  - { icon: "lucide:scale", title: AI judge, items: ["gpt-4o-mini scores drift 0–100", "Judges activity against your stated intention"] }
-  - { icon: "lucide:cpu", title: Arduino companion, items: ["LCD face, buzzer, push button", "Serial bridge: DAMAGE / HEAL / BOTHER / RESET"] }
-  - { icon: "lucide:mic", title: Voice reflection, items: ["Fish Audio speaks the day's question", "You answer out loud to heal"] }
----
-
----
-layout: code-explain
-kicker: The AI judge
-title: Judging consequences via JSON
-notes:
-  - "<strong>Context</strong> — your intention, saved URLs, and Screenpipe's activity summary go in."
-  - "<strong>Strict output</strong> — the model is forced to return just a damage score and one reason."
-  - "<strong>Clamped</strong> — damage is capped 0–100 before it ever reaches the bunny."
----
-
-```js
-const prompt =
-  "You are the judge of a focus game. Decide how much the player " +
-  "strayed from their intention. Respond with strict JSON only: " +
-  '{"damage": <integer 0-100>, "reasoning": "<one short sentence>"}';
-
-const damage = Math.max(0, Math.min(100, Math.round(rawDamage)));
-await applyDamage(damage); // → serial: DAMAGE <n> → health drops, sad chime plays
-```
-
----
-layout: bigtype
-bg: grain
-kicker: Why a toy, not another app
-title: Your bunny <em>takes damage</em>.
-subtitle: Not a notification you can swipe away.
----
-
----
 layout: timeline
 kicker: Roadmap
 title: Where HabitRabbit goes next
 events:
   - { date: Now, title: Solo bunny, desc: "One habit, one companion, hackathon build" }
-  - { date: Next, title: More habits, desc: "User-defined bad habits beyond doomscrolling" }
-  - { date: Later, title: Smarter reflection, desc: "Spaced-repetition prompts, not just daily recall" }
+  - { date: Later, title: On your phone, desc: "Right where the scrolling happens" }
   - { date: Someday, title: Open hardware kit, desc: "3D-printed shell, buy-the-parts guide" }
 ---
 
