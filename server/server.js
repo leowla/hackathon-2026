@@ -197,16 +197,6 @@ app.post("/api/arduino", async (req, res) => {
       .status(400)
       .json({ success: false, error: "Amount must be a number." });
   }
-
-  try {
-    const result = await sendToArduino(verb, amount ?? null);
-    return res.status(200).json({ success: true, ...result });
-  } catch (err) {
-    console.error("Failed to signal the Arduino:", err);
-    return res
-      .status(500)
-      .json({ success: false, error: "Server failed to reach the Arduino." });
-  }
 });
 
 // Pulls the player's recent Screenpipe activity, asks OpenAI (via dispatch) to
@@ -264,6 +254,14 @@ app.post("/api/screenpipe", async (req, res) => {
       : 0;
     const health = await applyDamage(damage);
     console.log(health);
+
+    if (damage > 0) {
+      try {
+        const result = await sendToArduino(health ?? null);
+      } catch (err) {
+        console.error("Failed to signal the Arduino:", err);
+      }
+    }
 
     if (health.health < 50) {
       // read question.json to a string
@@ -345,7 +343,9 @@ app.post("/api/tts", async (req, res) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(response.status).json({ success: false, error: errText });
+      return res
+        .status(response.status)
+        .json({ success: false, error: errText });
     }
 
     const buffer = Buffer.from(await response.arrayBuffer());
@@ -353,7 +353,9 @@ app.post("/api/tts", async (req, res) => {
     res.send(buffer);
   } catch (err) {
     console.error("TTS proxy failed:", err);
-    res.status(500).json({ success: false, error: "Server failed to reach Fish Audio." });
+    res
+      .status(500)
+      .json({ success: false, error: "Server failed to reach Fish Audio." });
   }
 });
 
