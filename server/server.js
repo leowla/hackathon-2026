@@ -52,22 +52,27 @@ async function getHealth() {
   };
 }
 
-export async function appendQuestion(newQuestion, filePath = 'question.json') {
+export async function appendQuestion(
+  newQuestion,
+  filePath = "question_to_ask.json",
+) {
   try {
     let questions = [];
 
     // 1. Try to read the existing file
     try {
-      const data = await fs.readFile(filePath, 'utf8');
-      
+      const data = await fs.readFile(filePath, "utf8");
+
+      console.log("hi");
+
       // Parse the JSON data if the file is not empty
       if (data.trim()) {
         questions = JSON.parse(data);
       }
     } catch (readError) {
-      // If the file doesn't exist yet, we just catch the error 
+      // If the file doesn't exist yet, we just catch the error
       // and continue with our empty `questions` array
-      if (readError.code !== 'ENOENT') {
+      if (readError.code !== "ENOENT") {
         throw readError;
       }
     }
@@ -81,11 +86,11 @@ export async function appendQuestion(newQuestion, filePath = 'question.json') {
     questions.push(newQuestion);
 
     // 3. Write the updated array back to the file with nice formatting (2 spaces)
-    await fs.writeFile(filePath, JSON.stringify(questions, null, 2), 'utf8');
-    
-    console.log('Successfully appended to', filePath);
+    await fs.writeFile(filePath, JSON.stringify(questions, null, 2), "utf8");
+
+    console.log("Successfully appended to", filePath);
   } catch (error) {
-    console.error('Error appending question to file:', error);
+    console.error("Error appending question to file:", error);
   }
 }
 
@@ -206,15 +211,17 @@ app.post("/api/arduino", async (req, res) => {
 app.post("/api/screenpipe", async (req, res) => {
   const userChoices = await readJson(CHOICES_FILE, null);
 
-  if (!userChoices || !userChoices.intention) {
+  if (!userChoices) {
     return res
       .status(400)
       .json({ success: false, error: "No intention set yet." });
   }
 
   let activitySummary;
+
   try {
-    activitySummary = await fetchRecentActivity();
+    activitySummary = req.body;
+    console.log(activitySummary);
   } catch (err) {
     console.error("Failed to fetch Screenpipe activity:", err);
     return res.status(502).json({
@@ -223,7 +230,7 @@ app.post("/api/screenpipe", async (req, res) => {
     });
   }
 
-  const currHealth = getHealth()
+  const currHealth = getHealth();
 
   try {
     const prompt =
@@ -234,13 +241,12 @@ app.post("/api/screenpipe", async (req, res) => {
       '{"damage": <integer 0-100>, "reasoning": "<one short sentence>"}. ' +
       "0 damage means they stayed on track or there is not enough evidence of straying. " +
       "10 damage means they were completely off-task for the whole window.\n\n" +
+      'So return a number between 0 and 10 for the "damage" field, and a short reasoning sentence for the "reasoning" field. ' +
       JSON.stringify({
         intention: userChoices.intention,
         relevantUrls: userChoices.urls ?? [],
         activitySummary,
-      }); +
-      (currHealth < 50 && 'You have to return in the json a "question": "<generate one short question based on their recent activity if they are doing something technical like coding otherwise generate a general reflective question>"')
-
+      });
 
     const textOutput = await dispatch(prompt);
     let codexData;
@@ -262,16 +268,25 @@ app.post("/api/screenpipe", async (req, res) => {
     const reasoning =
       typeof codexData.reasoning === "string" ? codexData.reasoning : "";
 
-    if (codexData.question) {
-      const newEntry = {
-        timestamp: new Date().toISOString(),
-        activity: activitySummary, // Store the context
-        question: codexData.question // Store the generated question
-      }
-      await appendQuestion(newEntry, 'question.json')
-    }
-
     const health = await applyDamage(damage);
+    console.log(health);
+
+    if (health < 50) {
+      // read question.json to a string
+      const contentData = await readJson("questions.json", []);
+      const content =
+        Array.isArray(contentData) && contentData.length > 0
+          ? contentData[0].question
+          : "";
+
+      const question = await generateQuestion(content);
+      console.log(question);
+
+      await appendQuestion({
+        timestamp: new Date().toISOString(),
+        question,
+      });
+    }
 
     // Mirror the same hit onto the physical pet.
     if (damage > 0) {
