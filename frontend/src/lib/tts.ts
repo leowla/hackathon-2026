@@ -1,18 +1,12 @@
-const FISH_API_KEY = import.meta.env.VITE_FISH_API_KEY
+const TTS_URL = "http://localhost:3321/api/tts"
 
 export async function txtToSpeech(text: string): Promise<ArrayBuffer> {
-  const response = await fetch("https://api.fish.audio/v1/tts", {
+  const response = await fetch(TTS_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${FISH_API_KEY}`,
       "Content-Type": "application/json",
-      model: "s2.1-pro-free",
     },
-    body: JSON.stringify({
-      text,
-      reference_id: "536d3a5e000945adb7038665781a4aca",
-      format: "mp3",
-    }),
+    body: JSON.stringify({ text }),
   })
 
   if (!response.ok) {

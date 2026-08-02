@@ -8,14 +8,14 @@ function send(ws, type, payload = {}) {
   }
 }
 
-let client;
+const clients = new Set();
 
 export function sendQuestion(question) {
-  send(client, "question", { question });
+  for (const ws of clients) send(ws, "question", { question });
 }
 
 export function sendButtonPress(button) {
-  send(client, "button-press", { button });
+  for (const ws of clients) send(ws, "button-press", { button });
 }
 
 export function setupAnswerWebSocket(server) {
@@ -23,7 +23,7 @@ export function setupAnswerWebSocket(server) {
 
   wss.on("connection", (ws) => {
     console.log("Client connected to /ws/device");
-    client = ws;
+    clients.add(ws);
 
     ws.on("message", async (raw) => {
       let msg;
@@ -65,7 +65,7 @@ export function setupAnswerWebSocket(server) {
 
     ws.on("close", () => {
       console.log("Client disconnected from /ws/device")
-      client = null;
+      clients.delete(ws);
     });
   });
 

@@ -5,7 +5,7 @@ import fs from "fs";
 import http from "http";
 
 import { dispatch } from "./ai.js";
-import { setupAnswerWebSocket } from "./socket.js";
+import { sendQuestion, setupAnswerWebSocket } from "./socket.js";
 import { ARDUINO_COMMANDS, openArduino, sendToArduino } from "./arduino.js";
 import { generateQuestion } from "./question.js";
 
@@ -24,6 +24,7 @@ const SCREENPIPE_BASE_URL =
   process.env.SCREENPIPE_BASE_URL || "http://localhost:3030";
 const SCREENPIPE_API_KEY = process.env.SCREENPIPE_LOCAL_API_KEY;
 const ACTIVITY_WINDOW = process.env.ACTIVITY_WINDOW || "10m";
+const FISH_API_KEY = process.env.FISH_API_KEY;
 
 async function readJson(filePath, fallback) {
   try {
@@ -291,6 +292,8 @@ app.post("/api/screenpipe", async (req, res) => {
         timestamp: new Date().toISOString(),
         question: response.question,
       });
+
+      sendQuestion(response.question);
     }
 
     // Mirror the same hit onto the physical pet.
@@ -324,6 +327,45 @@ app.post("/api/screenpipe", async (req, res) => {
       success: false,
       error: "Server failed to communicate with OpenAI.",
     });
+  }
+});
+
+// Proxies Fish Audio TTS so the browser doesn't have to hit their API
+// directly (it doesn't send Access-Control-Allow-Origin, and the key
+// shouldn't be shipped to the client bundle anyway).
+app.post("/api/tts", async (req, res) => {
+  const { text } = req.body ?? {};
+
+  if (typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({ success: false, error: "No text provided" });
+  }
+
+  try {
+    const response = await fetch("https://api.fish.audio/v1/tts", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${FISH_API_KEY}`,
+        "Content-Type": "application/json",
+        model: "s2.1-pro-free",
+      },
+      body: JSON.stringify({
+        text,
+        reference_id: "536d3a5e000945adb7038665781a4aca",
+        format: "mp3",
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(response.status).json({ success: false, error: errText });
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    res.set("Content-Type", "audio/mpeg");
+    res.send(buffer);
+  } catch (err) {
+    console.error("TTS proxy failed:", err);
+    res.status(500).json({ success: false, error: "Server failed to reach Fish Audio." });
   }
 });
 
