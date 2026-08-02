@@ -39,7 +39,7 @@ export async function dispatch(prompt) {
     messages: [
       {
         role: "system",
-        content: FOCUS_REFEREE_SYSTEM_PROMPT,
+        content: "You must respond with valid JSON.",
       },
       {
         role: "user",
