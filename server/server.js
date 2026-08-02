@@ -7,7 +7,6 @@ import http from "http";
 import { dispatch, FOCUS_REFEREE_SYSTEM_PROMPT } from "./ai.js";
 import {
   sendQuestion,
-  sendStartListening,
   sendStopListening,
   setupAnswerWebSocket,
 } from "./socket.js";
@@ -35,6 +34,10 @@ const SCREENPIPE_BASE_URL =
 const SCREENPIPE_API_KEY = process.env.SCREENPIPE_LOCAL_API_KEY;
 const ACTIVITY_WINDOW = process.env.ACTIVITY_WINDOW || "10m";
 const FISH_API_KEY = process.env.FISH_API_KEY;
+
+let pendingQuestion = null;
+let activeQuestion = null;
+let ignoreButtonPressUntil = 0;
 
 async function readJson(filePath, fallback) {
   try {
@@ -118,6 +121,26 @@ async function applyDamage(damage) {
   return next;
 }
 
+async function applyHeal(heal) {
+  const current = await getHealth();
+  const next = {
+    health: Math.max(0, Math.min(current.maxHealth, current.health + heal)),
+    maxHealth: current.maxHealth,
+  };
+  await writeJson(HEALTH_FILE, next);
+  return next;
+}
+
+function parseHealthAmount(value, max = 20) {
+  const amount = Number(value);
+
+  if (!Number.isFinite(amount)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(max, Math.round(amount)));
+}
+
 // The pet has its own health counter, so a failed signal must never turn a
 // working request into an error. Log it and carry on.
 async function signalPet(command, amount = null, send = sendToArduino) {
@@ -142,6 +165,159 @@ async function syncPetHealth(send) {
 
   if (missing > 0) {
     await signalPet("DAMAGE", missing, send);
+  }
+
+  if (health < 50) {
+    await preparePendingQuestion();
+  }
+}
+
+async function preparePendingQuestion() {
+  if (pendingQuestion) {
+    return pendingQuestion;
+  }
+
+  const contentData = await readJson("questions.json", []);
+  const content =
+    Array.isArray(contentData) && contentData.length > 0 ? contentData : [];
+
+  const question = await generateQuestion(content);
+  const response = JSON.parse(question);
+
+  pendingQuestion = response.question;
+
+  await appendQuestion({
+    timestamp: new Date().toISOString(),
+    question: pendingQuestion,
+  });
+
+  console.log("Question prepared for next hardware button press.");
+
+  return pendingQuestion;
+}
+
+function sendPendingQuestion(reason) {
+  if (!pendingQuestion) {
+    return false;
+  }
+
+  const question = pendingQuestion;
+  pendingQuestion = null;
+  activeQuestion = question;
+  sendQuestion(question);
+  console.log(`Sent pending question after ${reason}.`);
+  return true;
+}
+
+function handleArduinoLine(message) {
+  if (message === "BUTTON_PUSHED") {
+    if (Date.now() < ignoreButtonPressUntil) {
+      console.log("Ignored duplicate button line from the same question press.");
+      return;
+    }
+
+    if (sendPendingQuestion("hardware button press")) {
+      return;
+    }
+
+    if (activeQuestion) {
+      sendStopListening();
+    }
+    return;
+  }
+
+  if (message === "DESPERATE_ACKNOWLEDGED") {
+    console.log("Hardware desperate alarm acknowledged.");
+    if (sendPendingQuestion("desperate acknowledgement")) {
+      ignoreButtonPressUntil = Date.now() + 1000;
+    }
+  }
+}
+
+async function handleAnswerResponse({ question, answer }) {
+  const userChoices = await readJson(CHOICES_FILE, {});
+
+  const prompt = `
+You are a fair HabitRabbit reflection judge. Your job is to decide whether the
+user made a real attempt to answer the question in a useful and intentional way.
+
+Context:
+- User intention: ${userChoices.intention ?? "Not provided"}
+- Question: ${question}
+- User answer: ${answer}
+
+Return exactly one JSON object:
+{
+  "action": "HEAL",
+  "amount": 20,
+  "reason": "short reason"
+}
+
+Rules:
+- Use "HEAL" when the answer is relevant to the question, even if it is short, imperfect, informal, or partially transcribed.
+- Use "HEAL" when the user shows any honest reflection, explains what happened, names a challenge, or gives a next step.
+- Use "DAMAGE" when the answer is clearly unrelated, evasive, joking, empty, nonsense, or only expresses frustration like wanting to leave.
+- If the answer is partly understandable and partly messy, prefer a small HEAL instead of DAMAGE.
+- If the answer could apply to almost any question and gives no useful detail, use DAMAGE.
+- For HEAL, "amount" must be an integer from 10 to 40.
+- For DAMAGE, "amount" must be an integer from 0 to 20.
+- For clear good answers, use HEAL 25-40.
+- For weak but partially related answers, use HEAL 10-20.
+- For unrelated, dismissive, or nonsense answers, use DAMAGE 10-20.
+- Do not include Markdown, code fences, or extra text.
+`.trim();
+
+  console.log("Judging answer with AI...");
+
+  try {
+    const textOutput = await Promise.race([
+      dispatch(prompt),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("AI answer judge timed out.")), 30000),
+      ),
+    ]);
+    console.log("AI answer judge response:", textOutput);
+
+    const result = JSON.parse(textOutput);
+    const action = String(result.action ?? "").trim().toUpperCase();
+
+    if (action !== "HEAL" && action !== "DAMAGE") {
+      throw new Error(`Invalid answer action from AI: ${result.action}`);
+    }
+
+    const amount =
+      action === "HEAL"
+        ? Math.max(10, parseHealthAmount(result.amount, 40))
+        : parseHealthAmount(result.amount, 20);
+
+    let health = await getHealth();
+
+    if (amount > 0) {
+      if (action === "HEAL") {
+        health = await applyHeal(amount);
+        await signalPet("HEAL", amount);
+      } else {
+        health = await applyDamage(amount);
+        await signalPet("DAMAGE", amount);
+      }
+    }
+
+    if (health.health < 50) {
+      await preparePendingQuestion();
+      await signalPet("DESPERATE");
+    }
+
+    return {
+      action,
+      amount,
+      reason: result.reason ?? "",
+      health: health.health,
+      maxHealth: health.maxHealth,
+    };
+  } finally {
+    if (activeQuestion && question === activeQuestion) {
+      activeQuestion = null;
+    }
   }
 }
 
@@ -182,8 +358,8 @@ app.post("/api/character/reset", async (req, res) => {
 });
 
 // Drive the pet by hand. Body: { command, amount } where command is one of
-// DAMAGE, HEAL, RESET, BOTHER, DEATH and amount is an optional integer that
-// only DAMAGE and HEAL use.
+// DAMAGE, HEAL, RESET, BOTHER, DEATH, DESPERATE and amount is an optional
+// integer that only DAMAGE and HEAL use.
 app.post("/api/arduino", async (req, res) => {
   const { command, amount } = req.body ?? {};
 
@@ -207,6 +383,13 @@ app.post("/api/arduino", async (req, res) => {
       .status(400)
       .json({ success: false, error: "Amount must be a number." });
   }
+
+  const result = await signalPet(
+    verb,
+    amount === null || amount === undefined ? null : Number(amount),
+  );
+
+  res.json({ success: true, ...result });
 });
 
 // Pulls the player's recent Screenpipe activity, asks OpenAI (via dispatch) to
@@ -221,6 +404,14 @@ app.post("/api/screenpipe", async (req, res) => {
       .json({ success: false, error: "No intention set yet." });
   }
 
+  if (pendingQuestion || activeQuestion) {
+    return res.status(200).json({
+      success: true,
+      skipped: true,
+      reason: "Waiting for the current hardware question flow to finish.",
+    });
+  }
+
   let activitySummary;
 
   try {
@@ -233,8 +424,6 @@ app.post("/api/screenpipe", async (req, res) => {
       error: "Could not reach Screenpipe. Is it running?",
     });
   }
-
-  const currHealth = getHealth();
 
   try {
     const prompt =
@@ -265,33 +454,8 @@ app.post("/api/screenpipe", async (req, res) => {
     const health = await applyDamage(damage);
     console.log(health);
 
-    if (damage > 0) {
-      try {
-        const result = await sendToArduino(health ?? null);
-      } catch (err) {
-        console.error("Failed to signal the Arduino:", err);
-      }
-    }
-
-    if (health.health < 50) {
-      // read question.json to a string
-      const contentData = await readJson("questions.json", []);
-      const content =
-        Array.isArray(contentData) && contentData.length > 0 ? contentData : [];
-
-      console.log("content", content);
-
-      console.log("hello1");
-      const question = await generateQuestion(content);
-
-      const response = JSON.parse(question);
-
-      await appendQuestion({
-        timestamp: new Date().toISOString(),
-        question: response.question,
-      });
-
-      sendQuestion(response.question);
+    if (damage > 0 && health.health < 50) {
+      await preparePendingQuestion();
     }
 
     // Mirror the same hit onto the physical pet.
@@ -388,26 +552,9 @@ app.post("/api/user-choices", async (req, res) => {
   }
 });
 
-// Tracks whether we're waiting for the press that ends a listening session,
-// so a stray press outside "Notice me" mode doesn't toggle anything.
-let awaitingStopPress = false;
-
-onArduinoLine((line) => {
-  if (line === "DESPERATE_ACKNOWLEDGED") {
-    // This press is the one that silenced the "Notice me" alarm.
-    awaitingStopPress = true;
-    sendStartListening();
-    return;
-  }
-
-  if (line === "BUTTON_PUSHED" && awaitingStopPress) {
-    awaitingStopPress = false;
-    sendStopListening();
-  }
-});
-
 const server = http.createServer(app);
-setupAnswerWebSocket(server);
+setupAnswerWebSocket(server, { onAnswer: handleAnswerResponse });
+onArduinoLine(handleArduinoLine);
 
 server.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

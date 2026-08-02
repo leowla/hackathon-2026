@@ -12,25 +12,26 @@ export function useSocket() {
 
   useEffect(() => {
     let cancelled = false
-    let ws
+    let ws: WebSocket | null = null
     let retryDelay = 1000
 
     function connect() {
       console.log('[socket] connecting to', WS_URL)
-      ws = new WebSocket(WS_URL)
-      wsRef.current = ws
+      const socket = new WebSocket(WS_URL)
+      ws = socket
+      wsRef.current = socket
 
-      ws.onopen = () => {
+      socket.onopen = () => {
         if (cancelled) {
           console.log('[socket] open fired after cancel, closing')
-          ws.close()
+          socket.close()
           return
         }
         console.log('[socket] connected')
         retryDelay = 1000
       }
 
-      ws.onmessage = (event) => {
+      socket.onmessage = (event) => {
         console.log('[socket] raw message:', event.data)
         let msg
         try {
@@ -67,6 +68,8 @@ export function useSocket() {
 
         if (msg.type === 'result') {
           console.log('[socket] result:', msg)
+          setQuestion(null)
+          setIsSpeaking(false)
         }
 
         if (!['question', 'start-listening', 'stop-listening', 'error', 'result'].includes(msg.type)) {
@@ -74,11 +77,11 @@ export function useSocket() {
         }
       }
 
-      ws.onerror = (err) => {
+      socket.onerror = (err) => {
         console.error('[socket] error:', err)
       }
 
-      ws.onclose = (event) => {
+      socket.onclose = (event) => {
         console.log('[socket] disconnected', { code: event.code, reason: event.reason, wasClean: event.wasClean })
         if (!cancelled) {
           console.log('[socket] reconnecting in', retryDelay, 'ms')

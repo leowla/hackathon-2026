@@ -606,6 +606,16 @@ p {
   font-size: 24px;
 }
 
+.voice-panel__question {
+  display: inline-block;
+  max-width: 760px;
+  padding: 12px 16px;
+  color: #4f58a8;
+  background: rgba(255, 255, 255, 0.78);
+  border: 3px solid #a9bff5;
+  border-radius: 6px;
+}
+
 .voice-panel__actions {
   display: flex;
   flex-wrap: wrap;

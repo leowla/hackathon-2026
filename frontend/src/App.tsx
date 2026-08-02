@@ -11,9 +11,10 @@ type Page = 'intentions' | 'urls'
 
 export default function App() {
   const { urls, addUrl, removeUrl } = useSavedUrls()
-  const { sendAnswer, startListeningSignal, stopListeningSignal } = useSocket()
+  const { question, isSpeaking, sendAnswer, stopListeningSignal } = useSocket()
   const [intention, setIntention] = useState('')
   const [page, setPage] = useState<Page>('intentions')
+  const [awaitingAnswer, setAwaitingAnswer] = useState(false)
 
   const {
     transcript,
@@ -25,20 +26,25 @@ export default function App() {
   const transcriptRef = useRef(transcript)
   transcriptRef.current = transcript
 
-  // First Arduino button press after "Notice me" mode: silences the alarm
-  // (handled on the board) and starts listening for the spoken answer.
+  // First Arduino button press shows the question. Start listening only after
+  // text-to-speech finishes so the app doesn't transcribe its own question.
   useEffect(() => {
-    if (startListeningSignal === 0) return
-    resetTranscript();
-    SpeechRecognition.startListening({ continuous: true })
-  }, [startListeningSignal])
+    if (question && !isSpeaking) {
+      resetTranscript();
+      SpeechRecognition.startListening({ continuous: true })
+      setAwaitingAnswer(true)
+    }
+  }, [question, isSpeaking])
 
   // Second Arduino button press: stops listening and submits the answer.
   useEffect(() => {
     if (stopListeningSignal === 0) return
+    if (!awaitingAnswer) return
+
     SpeechRecognition.stopListening()
     sendAnswer(transcriptRef.current)
-  }, [stopListeningSignal])
+    setAwaitingAnswer(false)
+  }, [stopListeningSignal, awaitingAnswer])
 
   if (!browserSupportsSpeechRecognition) {
     return <span>Your browser doesn't support speech recognition.</span>;
@@ -103,6 +109,11 @@ export default function App() {
 
       <div className="voice-panel">
         <h2>Voice Recognition App</h2>
+        {question && (
+          <p className="voice-panel__question">
+            {question}
+          </p>
+        )}
         <p>Microphone is: <strong>{listening ? 'ON 🎙️' : 'OFF 🔇'}</strong></p>
 
         <div className="voice-panel__actions">

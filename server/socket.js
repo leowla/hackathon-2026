@@ -1,5 +1,4 @@
 import { WebSocketServer } from "ws";
-import { dispatch } from "./ai.js";
 
 function send(ws, type, payload = {}) {
   if (ws?.readyState === ws?.OPEN) {
@@ -22,7 +21,7 @@ export function sendStopListening() {
   for (const ws of clients) send(ws, "stop-listening");
 }
 
-export function setupAnswerWebSocket(server) {
+export function setupAnswerWebSocket(server, { onAnswer = null } = {}) {
   const wss = new WebSocketServer({ server, path: "/ws/device" });
 
   wss.on("connection", (ws) => {
@@ -54,9 +53,11 @@ export function setupAnswerWebSocket(server) {
       console.log("Received answer:", answer);
 
       try {
-        const outputData = await dispatch(
-          `Question: ${question}\nAnswer: ${answer}\n\nIgnore the above for now and return {"score": 0}`,
-        );
+        if (!onAnswer) {
+          return send(ws, "error", { error: "Answer handler is not configured." });
+        }
+
+        const outputData = await onAnswer({ question, answer });
         send(ws, "result", { success: true, data: outputData });
       } catch (error) {
         console.error("Error communicating with OpenAI:", error);

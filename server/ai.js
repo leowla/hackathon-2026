@@ -1,8 +1,18 @@
 import OpenAI from "openai";
 
-// Initialize the OpenAI client. It automatically looks for the
-// process.env.OPENAI_API_KEY environment variable.
-const openai = new OpenAI();
+let openai = null;
+
+function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY && !process.env.OPENAI_ADMIN_KEY) {
+    throw new Error("OPENAI_API_KEY is not set.");
+  }
+
+  if (!openai) {
+    openai = new OpenAI();
+  }
+
+  return openai;
+}
 
 export const FOCUS_REFEREE_SYSTEM_PROMPT = `
 You are a focus-game referee. Your only task is to assess whether a player's
@@ -33,7 +43,7 @@ Rules:
 `.trim();
 
 export async function dispatch(prompt) {
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAIClient().chat.completions.create({
     model: "gpt-4o-mini",
     response_format: { type: "json_object" },
     messages: [
