@@ -5,8 +5,18 @@ import fs from "fs";
 import http from "http";
 
 import { dispatch, FOCUS_REFEREE_SYSTEM_PROMPT } from "./ai.js";
-import { sendQuestion, setupAnswerWebSocket } from "./socket.js";
-import { ARDUINO_COMMANDS, openArduino, sendToArduino } from "./arduino.js";
+import {
+  sendQuestion,
+  sendStartListening,
+  sendStopListening,
+  setupAnswerWebSocket,
+} from "./socket.js";
+import {
+  ARDUINO_COMMANDS,
+  onArduinoLine,
+  openArduino,
+  sendToArduino,
+} from "./arduino.js";
 import { generateQuestion } from "./question.js";
 
 const app = express();
@@ -375,6 +385,24 @@ app.post("/api/user-choices", async (req, res) => {
   } catch (err) {
     console.error("Failed to save user choices", err);
     res.status(500).send("Server failed to write file.");
+  }
+});
+
+// Tracks whether we're waiting for the press that ends a listening session,
+// so a stray press outside "Notice me" mode doesn't toggle anything.
+let awaitingStopPress = false;
+
+onArduinoLine((line) => {
+  if (line === "DESPERATE_ACKNOWLEDGED") {
+    // This press is the one that silenced the "Notice me" alarm.
+    awaitingStopPress = true;
+    sendStartListening();
+    return;
+  }
+
+  if (line === "BUTTON_PUSHED" && awaitingStopPress) {
+    awaitingStopPress = false;
+    sendStopListening();
   }
 });
 

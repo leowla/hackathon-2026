@@ -6,7 +6,8 @@ const WS_URL = 'ws://localhost:3321/ws/device'
 export function useSocket() {
   const [question, setQuestion] = useState<string | null>(null)
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const [buttonPressCount, setButtonPressCount] = useState(0)
+  const [startListeningSignal, setStartListeningSignal] = useState(0)
+  const [stopListeningSignal, setStopListeningSignal] = useState(0)
   const wsRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
@@ -50,9 +51,14 @@ export function useSocket() {
           });
         }
 
-        if (msg.type === 'button-press') {
-          console.log('[socket] button press:', msg.button)
-          setButtonPressCount((n) => n + 1)
+        if (msg.type === 'start-listening') {
+          console.log('[socket] start listening')
+          setStartListeningSignal((n) => n + 1)
+        }
+
+        if (msg.type === 'stop-listening') {
+          console.log('[socket] stop listening')
+          setStopListeningSignal((n) => n + 1)
         }
 
         if (msg.type === 'error') {
@@ -63,7 +69,7 @@ export function useSocket() {
           console.log('[socket] result:', msg)
         }
 
-        if (!['question', 'button-press', 'error', 'result'].includes(msg.type)) {
+        if (!['question', 'start-listening', 'stop-listening', 'error', 'result'].includes(msg.type)) {
           console.warn('[socket] unhandled message type:', msg.type, msg)
         }
       }
@@ -101,5 +107,5 @@ export function useSocket() {
     wsRef.current.send(JSON.stringify(payload))
   }
 
-  return { question, sendAnswer, isSpeaking, buttonPressCount }
+  return { question, sendAnswer, isSpeaking, startListeningSignal, stopListeningSignal }
 }

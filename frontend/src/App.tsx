@@ -11,7 +11,7 @@ type Page = 'intentions' | 'urls'
 
 export default function App() {
   const { urls, addUrl, removeUrl } = useSavedUrls()
-  const { question, isSpeaking, sendAnswer, buttonPressCount } = useSocket()
+  const { sendAnswer, startListeningSignal, stopListeningSignal } = useSocket()
   const [intention, setIntention] = useState('')
   const [page, setPage] = useState<Page>('intentions')
 
@@ -25,18 +25,20 @@ export default function App() {
   const transcriptRef = useRef(transcript)
   transcriptRef.current = transcript
 
+  // First Arduino button press after "Notice me" mode: silences the alarm
+  // (handled on the board) and starts listening for the spoken answer.
   useEffect(() => {
-    if (question && !isSpeaking) {
-      resetTranscript();
-      SpeechRecognition.startListening({ continuous: true })
-    }
-  }, [question, isSpeaking])
+    if (startListeningSignal === 0) return
+    resetTranscript();
+    SpeechRecognition.startListening({ continuous: true })
+  }, [startListeningSignal])
 
+  // Second Arduino button press: stops listening and submits the answer.
   useEffect(() => {
-    if (buttonPressCount === 0) return
+    if (stopListeningSignal === 0) return
     SpeechRecognition.stopListening()
     sendAnswer(transcriptRef.current)
-  }, [buttonPressCount])
+  }, [stopListeningSignal])
 
   if (!browserSupportsSpeechRecognition) {
     return <span>Your browser doesn't support speech recognition.</span>;

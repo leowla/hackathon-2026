@@ -14,8 +14,12 @@ export function sendQuestion(question) {
   for (const ws of clients) send(ws, "question", { question });
 }
 
-export function sendButtonPress(button) {
-  for (const ws of clients) send(ws, "button-press", { button });
+export function sendStartListening() {
+  for (const ws of clients) send(ws, "start-listening");
+}
+
+export function sendStopListening() {
+  for (const ws of clients) send(ws, "stop-listening");
 }
 
 export function setupAnswerWebSocket(server) {
