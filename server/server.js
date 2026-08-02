@@ -62,9 +62,7 @@ export async function appendQuestion(
 
     // 1. Try to read the existing file
     try {
-      const data = await fs.readFile(filePath, "utf8");
-
-      console.log("hi");
+      const data = await fs.promises.readFile(filePath, "utf8");
 
       // Parse the JSON data if the file is not empty
       if (data.trim()) {
@@ -87,7 +85,11 @@ export async function appendQuestion(
     questions.push(newQuestion);
 
     // 3. Write the updated array back to the file with nice formatting (2 spaces)
-    await fs.writeFile(filePath, JSON.stringify(questions, null, 2), "utf8");
+    await fs.promises.writeFile(
+      filePath,
+      JSON.stringify(questions, null, 2),
+      "utf8",
+    );
 
     console.log("Successfully appended to", filePath);
   } catch (error) {
@@ -280,12 +282,14 @@ app.post("/api/screenpipe", async (req, res) => {
 
       console.log("content", content);
 
+      console.log("hello1");
       const question = await generateQuestion(content);
-      console.log(JSON.parse(question));
+
+      const response = JSON.parse(question);
 
       await appendQuestion({
         timestamp: new Date().toISOString(),
-        question,
+        question: response.question,
       });
     }
 
