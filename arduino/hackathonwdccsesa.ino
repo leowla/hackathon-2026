@@ -67,6 +67,10 @@ unsigned long messageStartTime = 0;
 
 const unsigned long messageDuration = 2500;
 
+// Shown when the button is pressed, so the pet reads as waiting to hear back
+// from the server. Ten characters, which is all the 12-column text area holds.
+const char *waitingMessage = "WAITING...";
+
 
 // ==================================================
 // Fixed rabbit body parts
@@ -319,6 +323,8 @@ void checkButtonPress()
           desperateAlarmAcknowledged = true;
           Serial.println("DESPERATE_ACKNOWLEDGED");
         }
+
+        showTemporaryMessage(waitingMessage);
       }
     }
   }
@@ -773,8 +779,11 @@ void playDesperateResponse()
     healthLevel > 0
   )
   {
+    // The acknowledgement was a button press, so land on the waiting message
+    // instead of the idle greeting. setRabbitExpression redraws column 12,
+    // which is what clears the desperate icon, and row 1 still holds health.
     setRabbitExpression(NORMAL_FACE);
-    showMainScreen();
+    showTemporaryMessage(waitingMessage);
   }
 }
 

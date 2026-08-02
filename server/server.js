@@ -5,8 +5,9 @@ import fs from "fs";
 import http from "http";
 
 import { dispatch, FOCUS_REFEREE_SYSTEM_PROMPT } from "./ai.js";
-import { setupAnswerWebSocket } from "./socket.js";
+import { sendQuestion, setupAnswerWebSocket } from "./socket.js";
 import { ARDUINO_COMMANDS, openArduino, sendToArduino } from "./arduino.js";
+import { generateQuestion } from "./question.js";
 
 const app = express();
 const port = 3321;
@@ -23,6 +24,7 @@ const SCREENPIPE_BASE_URL =
   process.env.SCREENPIPE_BASE_URL || "http://localhost:3030";
 const SCREENPIPE_API_KEY = process.env.SCREENPIPE_LOCAL_API_KEY;
 const ACTIVITY_WINDOW = process.env.ACTIVITY_WINDOW || "10m";
+const FISH_API_KEY = process.env.FISH_API_KEY;
 
 async function readJson(filePath, fallback) {
   try {
@@ -50,6 +52,50 @@ async function getHealth() {
         ? state.maxHealth
         : DEFAULT_HEALTH.maxHealth,
   };
+}
+
+export async function appendQuestion(
+  newQuestion,
+  filePath = "question_to_ask.json",
+) {
+  try {
+    let questions = [];
+
+    // 1. Try to read the existing file
+    try {
+      const data = await fs.promises.readFile(filePath, "utf8");
+
+      // Parse the JSON data if the file is not empty
+      if (data.trim()) {
+        questions = JSON.parse(data);
+      }
+    } catch (readError) {
+      // If the file doesn't exist yet, we just catch the error
+      // and continue with our empty `questions` array
+      if (readError.code !== "ENOENT") {
+        throw readError;
+      }
+    }
+
+    // Ensure the parsed data is an array (just in case the JSON was an object)
+    if (!Array.isArray(questions)) {
+      questions = [questions];
+    }
+
+    // 2. Append the new entry
+    questions.push(newQuestion);
+
+    // 3. Write the updated array back to the file with nice formatting (2 spaces)
+    await fs.promises.writeFile(
+      filePath,
+      JSON.stringify(questions, null, 2),
+      "utf8",
+    );
+
+    console.log("Successfully appended to", filePath);
+  } catch (error) {
+    console.error("Error appending question to file:", error);
+  }
 }
 
 async function applyDamage(damage) {
@@ -169,15 +215,17 @@ app.post("/api/arduino", async (req, res) => {
 app.post("/api/screenpipe", async (req, res) => {
   const userChoices = await readJson(CHOICES_FILE, null);
 
-  if (!userChoices || !userChoices.intention) {
+  if (!userChoices) {
     return res
       .status(400)
       .json({ success: false, error: "No intention set yet." });
   }
 
   let activitySummary;
+
   try {
-    activitySummary = await fetchRecentActivity();
+    activitySummary = req.body;
+    console.log(activitySummary);
   } catch (err) {
     console.error("Failed to fetch Screenpipe activity:", err);
     return res.status(502).json({
@@ -185,6 +233,8 @@ app.post("/api/screenpipe", async (req, res) => {
       error: "Could not reach Screenpipe. Is it running?",
     });
   }
+
+  const currHealth = getHealth();
 
   try {
     const prompt =
@@ -213,6 +263,28 @@ app.post("/api/screenpipe", async (req, res) => {
       ? Math.max(0, Math.min(100, Math.round(rawDamage)))
       : 0;
     const health = await applyDamage(damage);
+    console.log(health);
+
+    if (health.health < 50) {
+      // read question.json to a string
+      const contentData = await readJson("questions.json", []);
+      const content =
+        Array.isArray(contentData) && contentData.length > 0 ? contentData : [];
+
+      console.log("content", content);
+
+      console.log("hello1");
+      const question = await generateQuestion(content);
+
+      const response = JSON.parse(question);
+
+      await appendQuestion({
+        timestamp: new Date().toISOString(),
+        question: response.question,
+      });
+
+      sendQuestion(response.question);
+    }
 
     // Mirror the same hit onto the physical pet.
     if (damage > 0) {
@@ -243,6 +315,45 @@ app.post("/api/screenpipe", async (req, res) => {
       success: false,
       error: "Server failed to communicate with OpenAI.",
     });
+  }
+});
+
+// Proxies Fish Audio TTS so the browser doesn't have to hit their API
+// directly (it doesn't send Access-Control-Allow-Origin, and the key
+// shouldn't be shipped to the client bundle anyway).
+app.post("/api/tts", async (req, res) => {
+  const { text } = req.body ?? {};
+
+  if (typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({ success: false, error: "No text provided" });
+  }
+
+  try {
+    const response = await fetch("https://api.fish.audio/v1/tts", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${FISH_API_KEY}`,
+        "Content-Type": "application/json",
+        model: "s2.1-pro-free",
+      },
+      body: JSON.stringify({
+        text,
+        reference_id: "536d3a5e000945adb7038665781a4aca",
+        format: "mp3",
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(response.status).json({ success: false, error: errText });
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    res.set("Content-Type", "audio/mpeg");
+    res.send(buffer);
+  } catch (err) {
+    console.error("TTS proxy failed:", err);
+    res.status(500).json({ success: false, error: "Server failed to reach Fish Audio." });
   }
 });
 
