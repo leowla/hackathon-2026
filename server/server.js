@@ -7,6 +7,7 @@ import http from "http";
 import { dispatch } from "./ai.js";
 import { setupAnswerWebSocket } from "./socket.js";
 import { ARDUINO_COMMANDS, openArduino, sendToArduino } from "./arduino.js";
+import { generateQuestion } from "./question.js";
 
 const app = express();
 const port = 3321;
@@ -271,16 +272,16 @@ app.post("/api/screenpipe", async (req, res) => {
     const health = await applyDamage(damage);
     console.log(health);
 
-    if (health < 50) {
+    if (health.health < 50) {
       // read question.json to a string
       const contentData = await readJson("questions.json", []);
       const content =
-        Array.isArray(contentData) && contentData.length > 0
-          ? contentData[0].question
-          : "";
+        Array.isArray(contentData) && contentData.length > 0 ? contentData : [];
+
+      console.log("content", content);
 
       const question = await generateQuestion(content);
-      console.log(question);
+      console.log(JSON.parse(question));
 
       await appendQuestion({
         timestamp: new Date().toISOString(),
