@@ -2,7 +2,10 @@ import { WebSocketServer } from "ws";
 import { dispatch } from "./ai.js";
 
 function send(ws, type, payload = {}) {
-  ws.send(JSON.stringify({ type, ...payload }));
+  if (ws?.readyState === ws?.OPEN) {
+    try { ws.send(JSON.stringify({ type, ...payload })); }
+    catch (err) { console.error("send failed:", err); }
+  }
 }
 
 let client;
@@ -60,7 +63,10 @@ export function setupAnswerWebSocket(server) {
       }
     });
 
-    ws.on("close", () => console.log("Client disconnected from /ws/device"));
+    ws.on("close", () => {
+      console.log("Client disconnected from /ws/device")
+      client = null;
+    });
   });
 
   return wss;

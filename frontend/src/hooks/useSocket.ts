@@ -10,44 +10,65 @@ export function useSocket() {
   const wsRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
-    const ws = new WebSocket(WS_URL)
-    wsRef.current = ws
+    let cancelled = false
+    let ws
+    let retryDelay = 1000
 
-    ws.onopen = () => {
-      console.log('Connected to answer socket')
-    }
+    function connect() {
+      ws = new WebSocket(WS_URL)
+      wsRef.current = ws
 
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data)
-
-      if (msg.type === 'question') {
-        setQuestion(msg.question)
-        setIsSpeaking(true);
-        speak(msg.question, () => setIsSpeaking(false)).catch((err) => {
-          console.error("TTS failed", err)
-          setIsSpeaking(false)
-        });
+      ws.onopen = () => {
+        console.log('Connected to answer socket')
+        retryDelay = 1000
       }
 
-      if (msg.type === 'button-press') {
-        console.log('Button press:', msg.button)
-        setButtonPressCount((n) => n + 1)
+      ws.onmessage = (event) => {
+        let msg
+        try {
+          msg = JSON.parse(event.data)
+        } catch {
+          console.error('Bad message:', event.data)
+          return
+        }
+
+        if (msg.type === 'question') {
+          setQuestion(msg.question)
+          setIsSpeaking(true);
+          speak(msg.question, () => setIsSpeaking(false)).catch((err) => {
+            console.error("TTS failed", err)
+            setIsSpeaking(false)
+          });
+        }
+
+        if (msg.type === 'button-press') {
+          console.log('Button press:', msg.button)
+          setButtonPressCount((n) => n + 1)
+        }
+
+        if (msg.type === 'error') {
+          console.error('Socket error message:', msg.error)
+        }
       }
 
-      if (msg.type === 'error') {
-        console.error('Socket error message:', msg.error)
+      ws.onerror = (err) => {
+        console.error('WebSocket error:', err)
+      }
+
+      ws.onclose = () => {
+        console.log('Disconnected from answer socket')
+        if (!cancelled) {
+          setTimeout(connect, retryDelay)
+          retryDelay = Math.min(retryDelay * 2, 30000)
+        }
       }
     }
+    connect()
 
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err)
+    return () => {
+      cancelled = true
+      wsRef.current?.close()
     }
-
-    ws.onclose = () => {
-      console.log('Disconnected from answer socket')
-    }
-
-    return () => ws.close()
   }, [])
 
   function sendAnswer(answer: string) {
