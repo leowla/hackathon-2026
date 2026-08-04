@@ -1,31 +1,37 @@
-# hackathon 2026
+# HabitRabbit
 
-State your intention, then save the sites it applies to. Built with Vite +
-React + TypeScript.
+HabitRabbit is a companion pet designed to help you break your bad habits.
 
-All frontend code lives in `frontend/`. Two pages, switched by a button —
-the front page holds the intention input, and "Page intentions" opens the
-URL list.
+<img width="3024" height="1646" alt="image" src="https://github.com/user-attachments/assets/2e1156f6-d173-45f5-9e9a-faa477325ce8" />
 
-Nothing persists yet: the intention and the saved URLs are held in memory
-and reset on refresh. URL state lives in `frontend/src/hooks/useSavedUrls.ts`
-— swap that one file to add `localStorage` or a backend later.
+Interact using natural language and AI will track your computer screen, compare your actions against your intended habits, and heal/damage your pet depending on your recent actions. An Arduino-based architecture allows HabitRabbit to be implemented into any soft toy.
 
-## Getting started
+HabitRabbit was created in 24 hours at the [WDCC x SESA Hackathon 2026](https://wdccxsesahackathon.com/).
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+A full presentation is available in [`/slidev`](./slidev).
 
-Then open the localhost URL that Vite prints.
+## How it works
 
-## Scripts
+1. You tell HabitRabbit the habit you're trying to build or break (natural language)
+2. AI takes screenshots on every interaction (click, scroll, keypress) to monitor your screen activity
+3. An LLM classifies your activity against your stated habit goal
+4. The result is sent to the Arduino over serial, which drives an LCD screen and sound to animate the pet's health and mood
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Start the dev server with hot reload |
-| `npm run build` | Type-check and build for production into `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm run lint` | Run oxlint |
+## Tech stack
+
+- **AI/LLM:** OpenAI GPT-4o
+- **Screen tracking:** Screenpipe
+- **Hardware:** Arduino
+- **Comms:** Serial between Node.js and Arduino
+- **Frontend:** Vite
+
+## Team
+
+Built by University of Auckland students in 24 hours at the [WDCC x SESA Hackathon 2026](https://wdccxsesahackathon.com/).
+
+- Ava — [@AVA030215](https://github.com/AVA030215)
+- Long Nguyen — [@nlong3242](https://github.com/nlong3242)
+- Priyank — [@Priyankv18](https://github.com/Priyankv18)
+- Kim Ngor — [@K1mmyn](https://github.com/K1mmyn)
+- Hartej Bassan — [@harbassan](https://github.com/harbassan)
+- Leo Wang — [@leowla](https://github.com/leowla)
