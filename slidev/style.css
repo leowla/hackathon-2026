@@ -1,0 +1,220 @@
+/* HabitRabbit — pastel pixel skin for slidev-theme-tahta.
+ * Matches the app UI: pale pixel-art sky, white rounded cards, lavender/pink
+ * candy palette, rounded sans body + pixel type for labels and numbers.
+ * Loaded automatically by Slidev after the theme, so plain overrides win.
+ * Only the SKIN is redefined here — every layout still reads the same tokens. */
+
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&family=Pixelify+Sans:wght@400..700&family=Press+Start+2P&display=swap');
+
+/* ---------- TOKENS ----------
+ * The variant selector is repeated so these beat :root[data-variant='soft'];
+ * data-accent='custom' is covered too (set by the theme when themeConfig.accent exists). */
+:root,
+:root[data-variant='soft'],
+:root[data-accent='custom'] {
+  /* ground + ink — text colors are deepened so they stay legible on the pale sky */
+  --ink: #e6edfb;
+  --ink-2: #ffffff;
+  --line: #ddd7f4;
+  --fg: #3b3a6b;
+  --fg-dim: #67668f;
+
+  /* semantic roles — candy hues, deep enough to read */
+  --good: #2b8f68;
+  --warn: #b8791c;
+  --bad: #c94a72;
+  --info: #3f7dcc;
+
+  /* accent — lavender/violet, the app's button + sparkle color */
+  --accent-base: #6f5ccb;
+  --accent: #6f5ccb;
+  --on-accent: #ffffff;
+
+  /* card ramp — lavender, bubblegum, sky, mint, butter */
+  --cat-1: #6f5ccb;
+  --cat-2: #c4568f;
+  --cat-3: #3f82c9;
+  --cat-4: #2f8f6c;
+  --cat-5: #a8761a;
+
+  /* type — rounded sans for prose, pixel type for labels/numbers */
+  --font-display: 'Quicksand', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Quicksand', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'Pixelify Sans', 'JetBrains Mono', ui-monospace, monospace;
+  --font-pixel: 'Press Start 2P', 'Pixelify Sans', monospace;
+  --w-display: 700;
+  --w-strong: 700;
+  --tr-display: -0.015em;
+
+  /* shape — big soft radii, chunky pastel rules */
+  --radius: 20px;
+  --radius-sm: 14px;
+  --rule-w: 2px;
+  --surface-bg: rgba(255, 255, 255, 0.9);
+  --surface-border: 2px solid #e4defa;
+  --surface-shadow: 0 18px 40px -26px rgba(96, 84, 168, 0.45);
+  --code-bg: #f6f3fe;
+  --chart-muted: #ded8f2;
+
+  /* atmosphere — the pixel sky carries it, so only a whisper of pink light on top */
+  --glow: radial-gradient(58% 66% at 80% -8%, rgba(244, 168, 208, 0.22), transparent 62%);
+  --bg-texture: none;
+  --bg-texture-op: 0;
+  --card-tick: 0;
+}
+
+/* ---------- the pixel sky, on every slide ---------- */
+.slidev-layout {
+  background-color: #e6edfb;
+  background-image: url('/bg-sky.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+/* layouts that own the full frame (split/bleed media) keep their own art */
+.slidev-layout.l-bleed,
+.slidev-layout.l-split { background-image: none; }
+
+/* generated `bg:` washes, repainted pastel so they sit ON the sky instead of tinting it dark */
+.slide-bg[data-bg='aurora'] {
+  background:
+    radial-gradient(42% 80% at 10% 0%, rgba(244, 168, 208, 0.28), transparent 62%),
+    radial-gradient(46% 88% at 58% 14%, rgba(196, 178, 245, 0.26), transparent 60%),
+    radial-gradient(46% 80% at 100% 92%, rgba(168, 214, 245, 0.30), transparent 62%);
+}
+.slide-bg[data-bg='mesh'] {
+  background:
+    radial-gradient(56% 55% at 84% -6%, rgba(196, 178, 245, 0.30), transparent 62%),
+    radial-gradient(48% 46% at -6% 104%, rgba(168, 230, 200, 0.26), transparent 62%);
+}
+.slide-bg[data-bg='grain'] { opacity: 0.05; }
+
+/* ---------- type ---------- */
+.slidev-layout { font-weight: 500; }
+.slidev-layout h1,
+.slidev-layout h2 { color: #35345f; }
+.slidev-layout h1 em,
+.slidev-layout h2 em { color: var(--cat-2); }
+
+/* hero titles echo the app logo: white pixel type with a lavender outline.
+   `.pixel-logo` applies the same treatment to a span inside any other title. */
+.l-cover h1,
+.l-end h1,
+.pixel-logo {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  color: #ffffff;
+  -webkit-text-stroke: 3px #8f79e4;
+  paint-order: stroke fill;
+  text-shadow: 0 6px 0 rgba(143, 121, 228, 0.2);
+}
+
+/* kicker — tiny arcade label with a pixel square instead of the soft variant's dot */
+.kicker {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  line-height: 1.6;
+  gap: 0.7rem;
+}
+:root[data-variant='soft'] .kicker::before,
+.kicker::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  background: var(--accent);
+  box-shadow: 3px -3px 0 rgba(244, 168, 208, 0.9);
+}
+
+/* pixel numerals for the game-y figures */
+.stat-num,
+.fact-num,
+.metric-num .stat-num,
+.agenda-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* square pixel bullets */
+.slidev-layout ul > li::before {
+  border-radius: 0;
+  width: 7px;
+  height: 7px;
+  top: 0.62em;
+  background: var(--card-accent, var(--accent));
+}
+
+.accent-bar {
+  border-radius: 0;
+  height: 8px;
+  background: var(--accent);
+  box-shadow: 12px 0 0 rgba(244, 168, 208, 0.85), 24px 0 0 rgba(168, 214, 245, 0.85);
+  width: 3rem;
+}
+
+/* opt-in via `class: body-top` — content sits right under the title instead of
+   being centered in the remaining space (the layout's default). Both the body and
+   the <Fit> wrapper inside it center by default, so each needs releasing. */
+.body-top .l-body { justify-content: flex-start; padding-top: var(--sp-8); }
+.body-top .l-body .fit { justify-content: flex-start; }
+
+/* ---------- surfaces ---------- */
+.card,
+.panel,
+.vs-side,
+.callout,
+.terminal,
+.grid-cell {
+  backdrop-filter: blur(2px);
+}
+.callout { border-left-width: 6px; }
+.vs-div {
+  background: #ffffff;
+  color: var(--accent);
+  border-color: #e4defa;
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  padding: 0.62rem 0.6rem;
+}
+.slidev-layout pre { box-shadow: var(--surface-shadow); }
+/* code-explain's column is narrow — wrap + step down so long lines aren't cut off */
+.code-explain .ce-code pre,
+.code-explain .ce-code .slidev-code {
+  font-size: 0.74rem;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+/* ---------- pixel details on the small furniture ---------- */
+.tl-dot {
+  border-radius: 0;
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9);
+}
+.tl-date,
+.foot,
+.tags .tag { font-family: var(--font-mono); }
+.tl-date { font-size: 0.85rem; letter-spacing: 0.04em; }
+.tags .tag {
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.85);
+  border-color: #e4defa;
+  color: var(--fg);
+}
+.rail-seg { border-radius: 2px; }
+/* the foot sits over the pixel grass — a white halo keeps it readable there */
+.foot {
+  font-size: 0.8rem;
+  color: #55547d;
+  text-shadow: 0 0 6px #fff, 0 0 3px #fff, 0 1px 0 #fff;
+}
+.explain-note::before { font-family: var(--font-mono); font-size: 0.95rem; }
+.badge { font-family: var(--font-mono); font-size: 0.95em; }
+.slidev-layout thead th { font-family: var(--font-mono); font-size: 0.8rem; }
